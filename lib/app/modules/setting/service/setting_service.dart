@@ -7,6 +7,7 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:kenzeno/app/services/api_client.dart';
 import '../../../constants/appconstants.dart';
 import '../model/faq_model.dart';
 import '../model/profile_model.dart';
@@ -24,20 +25,9 @@ class SettingService {
     if (token == null) throw Exception('Authentication required');
 
     final url = '${AppConstants.baseUrl}/accounts/profile/';
-    final response = await http.get(
+    final response = await ApiClient.get(
       Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
       tag: 'Setting-FetchProfile',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {

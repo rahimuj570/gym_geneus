@@ -6,7 +6,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:kenzeno/app/modules/setup/views/coach.dart';
-import 'package:kenzeno/app/res/assets/asset.dart';
 import 'package:kenzeno/app/res/colors/colors.dart';
 import 'package:kenzeno/app/res/fonts/textstyle.dart';
 import 'package:kenzeno/app/widgets/backbutton_widget.dart';
@@ -72,31 +71,60 @@ class FillProfilePage extends StatelessWidget {
                             alignment: Alignment.bottomRight,
                             children: [
                               Obx(() {
-                                final imagePath =
-                                    imageController.pickedImage.value?.path ??
-                                    ImageAssets.img_10;
+                                final picked =
+                                    imageController.pickedImage.value;
+                                final profilePath =
+                                    controller.profileImagePath.value;
+
+                                Widget avatarContent;
+                                if (picked != null) {
+                                  avatarContent = Image.file(
+                                    File(picked.path),
+                                    fit: BoxFit.cover,
+                                    width: 120.w,
+                                    height: 120.w,
+                                  );
+                                } else if (profilePath.isNotEmpty) {
+                                  if (profilePath.startsWith('http')) {
+                                    avatarContent = Image.network(
+                                      profilePath,
+                                      fit: BoxFit.cover,
+                                      width: 120.w,
+                                      height: 120.w,
+                                      errorBuilder: (_, __, ___) =>
+                                          _buildDefaultPersonIcon(),
+                                    );
+                                  } else {
+                                    final localFile = File(profilePath);
+                                    if (localFile.existsSync()) {
+                                      avatarContent = Image.file(
+                                        localFile,
+                                        fit: BoxFit.cover,
+                                        width: 120.w,
+                                        height: 120.w,
+                                      );
+                                    } else {
+                                      avatarContent =
+                                          _buildDefaultPersonIcon();
+                                    }
+                                  }
+                                } else {
+                                  avatarContent = _buildDefaultPersonIcon();
+                                }
+
                                 return Container(
                                   width: 120.w,
                                   height: 120.w,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
+                                    color: AppColor.white15,
                                     border: Border.all(
                                       color: AppColor.customPurple,
                                       width: 3.w,
                                     ),
                                   ),
                                   child: ClipOval(
-                                    child:
-                                        imageController.pickedImage.value !=
-                                            null
-                                        ? Image.file(
-                                            File(imagePath),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Image.asset(
-                                            imagePath,
-                                            fit: BoxFit.cover,
-                                          ),
+                                    child: avatarContent,
                                   ),
                                 );
                               }),
@@ -138,6 +166,7 @@ class FillProfilePage extends StatelessWidget {
                         ),
                         SizedBox(height: 8.h),
                         InputTextWidget(
+                          controller: controller.nameTextController,
                           hintText: 'Madison Smith',
                           onChanged: controller.setFullName,
                           height: 40.h,
@@ -282,6 +311,18 @@ class FillProfilePage extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultPersonIcon() {
+    return Container(
+      color: AppColor.white15,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.person,
+        size: 65.w,
+        color: Colors.white.withOpacity(0.6),
       ),
     );
   }

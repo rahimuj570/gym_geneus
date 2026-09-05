@@ -20,6 +20,7 @@ class ProfileModel {
   List<WorkoutDay>? preferredWorkoutDays;
   Rank? rank; // new nested rank object
   String? joinedAt;
+  List<String>? missingProfileFields;
 
   ProfileModel({
     this.id,
@@ -39,7 +40,11 @@ class ProfileModel {
     this.preferredWorkoutDays,
     this.rank,
     this.joinedAt,
+    this.missingProfileFields,
   });
+
+  bool get hasMissingProfileFields =>
+      missingProfileFields != null && missingProfileFields!.isNotEmpty;
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
     return ProfileModel(
@@ -70,6 +75,13 @@ class ProfileModel {
           ? null
           : Rank.fromJson(json['rank'] as Map<String, dynamic>),
       joinedAt: json['joined_at'] as String?,
+      missingProfileFields: json['missing_profile_fields'] == null
+          ? null
+          : (json['missing_profile_fields'] is List
+              ? (json['missing_profile_fields'] as List)
+                  .map((e) => e.toString())
+                  .toList()
+              : null),
     );
   }
 

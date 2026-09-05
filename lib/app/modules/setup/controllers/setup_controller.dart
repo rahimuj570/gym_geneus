@@ -1,4 +1,5 @@
-import 'package:flutter/animation.dart';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,6 +7,7 @@ import 'package:kenzeno/app/modules/home/service/home_service.dart';
 import 'package:kenzeno/app/modules/setup/service/service.dart';
 import 'package:kenzeno/app/res/colors/colors.dart';
 
+import 'package:kenzeno/app/modules/setting/service/setting_service.dart';
 import '../models/coach_model.dart';
 import '../views/fill_profile.dart';
 import 'package:toastification/toastification.dart';
@@ -14,6 +16,7 @@ import 'package:kenzeno/app/res/fonts/textstyle.dart';
 class SetupController extends GetxController {
   final SetupService _service = Get.find<SetupService>();
   final HomeService _homeservice = Get.find<HomeService>();
+  final SettingService _settingService = SettingService();
   var selectedGender = ''.obs;
   var selectedAge = 18.obs;
   var selectedActivityLevel = ''.obs;
@@ -31,10 +34,33 @@ class SetupController extends GetxController {
   // Feet/Inches display string (only used for UI)
   final RxString heightInFeetInches = ''.obs;
 
+  late TextEditingController nameTextController;
+
   @override
   void onInit() {
+    log('ssssssssssssssssssssssssssssssssssssssssssssssss');
     super.onInit();
+    nameTextController = TextEditingController(text: fullName.value);
     fetchCoaches();
+    loadProfileData();
+  }
+
+  Future<void> loadProfileData() async {
+    try {
+      final profile = await _settingService.fetchProfile();
+      if (profile.fullName != null && profile.fullName!.trim().isNotEmpty) {
+        fullName.value = profile.fullName!.trim();
+        nameTextController.text = profile.fullName!.trim();
+      }
+      if (profile.avatar != null && profile.avatar!.trim().isNotEmpty) {
+        profileImagePath.value = profile.avatar!.trim();
+      }
+      if (profile.phoneNumber != null && profile.phoneNumber!.trim().isNotEmpty) {
+        phonenumber.value = profile.phoneNumber!.trim();
+      }
+    } catch (e) {
+      log('Error loading profile in SetupController: $e');
+    }
   }
 
   void selectGoal(String goal) {
@@ -113,7 +139,13 @@ class SetupController extends GetxController {
   var phonenumber = ''.obs;
   var profileImagePath = ''.obs;
 
-  void setFullName(String value) => fullName.value = value;
+  void setFullName(String value) {
+    fullName.value = value;
+    if (nameTextController.text != value) {
+      nameTextController.text = value;
+    }
+  }
+
   void setphonenumber(String value) => phonenumber.value = value;
 
   RxString selectedTrainer = ''.obs;
@@ -127,6 +159,7 @@ class SetupController extends GetxController {
   var selectedCoachId = Rxn<int>();
 
   Future<void> fetchCoaches() async {
+    log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
     try {
       isLoading(true);
       final list = await _service.fetchCoaches();
@@ -156,6 +189,7 @@ class SetupController extends GetxController {
   }
 
   void selectCoach(int coachId) {
+    log('coachId: $coachId');
     selectedCoachId.value = coachId;
   }
 

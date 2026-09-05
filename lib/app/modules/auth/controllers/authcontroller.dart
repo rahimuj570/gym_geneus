@@ -22,6 +22,7 @@ import '../models/signupmodel.dart';
 import '../models/usermodel.dart';
 import '../services/auth_service.dart';
 import '../views/passconfirmation.dart';
+import 'package:kenzeno/app/modules/setting/service/setting_service.dart';
 import 'package:toastification/toastification.dart';
 import 'package:kenzeno/app/widgets/custom_snackbar.dart';
 
@@ -172,6 +173,18 @@ class Authcontroller extends GetxController {
           borderRadius: BorderRadius.circular(12),
           showProgressBar: true,
         );
+
+        try {
+          final profile = await SettingService().fetchProfile();
+          if (profile.hasMissingProfileFields) {
+            Get.offAll(() => Setup(), transition: Transition.rightToLeft);
+            return;
+          }
+        } catch (e) {
+          print("Error checking profile on Google login: $e");
+        }
+
+        Get.offAll(() => Navbar(), transition: Transition.rightToLeft);
       } else {
         toastification.show(
           type: ToastificationType.error,
@@ -243,6 +256,16 @@ class Authcontroller extends GetxController {
           ); // don't block longer than 5s
         } catch (e) {
           print("⚠️ FCM init failed or timed out: $e");
+        }
+
+        try {
+          final profile = await SettingService().fetchProfile();
+          if (profile.hasMissingProfileFields) {
+            Get.offAll(() => Setup(), transition: Transition.rightToLeft);
+            return;
+          }
+        } catch (e) {
+          print("Error checking profile on login: $e");
         }
 
         Get.offAll(() => Navbar(), transition: Transition.rightToLeft);

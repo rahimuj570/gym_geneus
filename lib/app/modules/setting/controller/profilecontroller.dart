@@ -158,6 +158,9 @@ class ProfileController extends GetxController {
 
   bool get isProfileComplete {
     final p = profile.value;
+    if (p.missingProfileFields != null) {
+      return p.missingProfileFields!.isEmpty;
+    }
     return (p.fullName != null && p.fullName!.isNotEmpty) &&
         (p.heightCm != null && p.heightCm! > 0) &&
         (p.weightKg != null && p.weightKg! > 0) &&
