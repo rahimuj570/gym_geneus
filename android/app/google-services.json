@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "242619003718",
+    "project_id": "kenzeno-142b5",
+    "storage_bucket": "kenzeno-142b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:242619003718:android:c18c6006dbe5374b2b6b47",
+        "android_client_info": {
+          "package_name": "com.kenzeno.gymgeniusai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTtsM-HmOf0h3OCKwD7DXXr2HdBa6O5f8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
