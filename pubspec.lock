@@ -318,6 +318,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_debug_logger:
+    dependency: "direct main"
+    description:
+      name: flutter_debug_logger
+      sha256: "6d8705c63fb045f82f1c0127463d8ac91608e84f348aeb54e8d051111eec97b3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   flutter_dotenv:
     dependency: "direct main"
     description:

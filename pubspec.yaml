@@ -64,6 +64,7 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
   http: ^1.6.0
   url_launcher: ^6.3.1
+  flutter_debug_logger: ^2.1.0
 
 
 

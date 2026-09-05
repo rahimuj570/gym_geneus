@@ -1,5 +1,6 @@
 // lib/app/modules/gallery/models/gallery_dashboard_model.dart
 
+import '../../../constants/appconstants.dart';
 import '../views/calender.dart';
 
 class GalleryDashboardResponse {
@@ -20,23 +21,25 @@ class GalleryDashboardResponse {
 
   factory GalleryDashboardResponse.fromJson(Map<String, dynamic> json) {
     var typesMap = <String, List<String>>{};
-    if (json['date_image_types'] != null) {
-      json['date_image_types'].forEach((key, value) {
-        typesMap[key] = List<String>.from(value);
+    if (json['date_image_types'] != null && json['date_image_types'] is Map) {
+      (json['date_image_types'] as Map).forEach((key, value) {
+        if (value is List) {
+          typesMap[key.toString()] = List<String>.from(value.map((e) => e.toString()));
+        }
       });
     }
 
     var images = <GalleryImage>[];
-    if (json['latest_images'] != null) {
+    if (json['latest_images'] != null && json['latest_images'] is List) {
       images = List<GalleryImage>.from(
-        json['latest_images'].map((x) => GalleryImage.fromJson(x)),
+        (json['latest_images'] as List).map((x) => GalleryImage.fromJson(x as Map<String, dynamic>)),
       );
     }
 
     return GalleryDashboardResponse(
-      totalImages: json['total_images'] ?? 0,
-      imagesLastWeek: json['images_last_week'] ?? 0,
-      consecutiveDaysStreak: json['consecutive_days_streak'] ?? 0,
+      totalImages: (json['total_images'] as num?)?.toInt() ?? 0,
+      imagesLastWeek: (json['images_last_week'] as num?)?.toInt() ?? 0,
+      consecutiveDaysStreak: (json['consecutive_days_streak'] as num?)?.toInt() ?? 0,
       dateImageTypes: typesMap,
       latestImages: images,
     );
@@ -60,14 +63,26 @@ class GalleryImage {
     required this.uploadedAt,
   });
 
+  static String _formatImageUrl(dynamic path) {
+    if (path == null) return '';
+    final str = path.toString();
+    if (str.isEmpty) return '';
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      return str;
+    }
+    return '${AppConstants.baseUrimage}$str';
+  }
+
   factory GalleryImage.fromJson(Map<String, dynamic> json) {
     return GalleryImage(
-      id: json['id'],
-      imageUrl: json['image'],
-      imageType: json['image_type'],
-      aiDetected: json['ai_detected'] ?? false,
-      aiSummary: json['ai_summary'],
-      uploadedAt: DateTime.parse(json['uploaded_at']),
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      imageUrl: _formatImageUrl(json['image']),
+      imageType: json['image_type']?.toString() ?? 'front',
+      aiDetected: json['ai_detected'] == true,
+      aiSummary: json['ai_summary']?.toString(),
+      uploadedAt: json['uploaded_at'] != null
+          ? (DateTime.tryParse(json['uploaded_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 
@@ -84,3 +99,4 @@ class GalleryImage {
     }
   }
 }
+

@@ -1,8 +1,7 @@
 // nutrition_service.dart
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
-import 'package:get/get.dart';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -18,9 +17,11 @@ class NutritionService {
     final token = box.read('loginToken');
     if (token == null) throw Exception('Login required');
 
+    final url = '${AppConstants.baseUrl}/nutrition/upload-meal/';
+
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('${AppConstants.baseUrl}/nutrition/upload-meal/'),
+      Uri.parse(url),
     );
 
     request.headers['Authorization'] = 'Bearer $token';
@@ -38,37 +39,65 @@ class NutritionService {
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
 
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.POST,
+      tag: 'Nutrition-UploadMeal',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
     if (response.statusCode == 200 || response.statusCode == 201) {
       return MealAnalysisResult.fromJson(jsonDecode(response.body));
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['error'] ?? error['message'] ?? 'Analysis failed');
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error'] ?? error['message'] ?? error['detail'] ?? 'Analysis failed');
+      } catch (e) {
+        if (e is Exception && !e.toString().contains('FormatException')) rethrow;
+        throw Exception('Server error (${response.statusCode}): ${response.body}');
+      }
     }
   }
 
+  // Step 2: Save meal upload
   Future<bool> saveMealUpload(int tempUploadId) async {
     final token = box.read('loginToken');
     if (token == null) throw Exception('Login required');
 
+    final url = '${AppConstants.baseUrl}/nutrition/save-meal-upload/';
+    final payload = {"temp_upload_id": tempUploadId};
+
     final response = await http.post(
-      Uri.parse('${AppConstants.baseUrl}/nutrition/save-meal-upload/'),
+      Uri.parse(url),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: jsonEncode({"temp_upload_id": tempUploadId}),
+      body: jsonEncode(payload),
     );
 
-    print('Save Meal Status: ${response.statusCode}');
-    print('Save Meal Response: ${response.body}');
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.POST,
+      tag: 'Nutrition-SaveMeal',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       return true;
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(
-        error['error'] ?? error['message'] ?? 'Failed to save meal',
-      );
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(
+          error['error'] ?? error['message'] ?? error['detail'] ?? 'Failed to save meal',
+        );
+      } catch (e) {
+        if (e is Exception && !e.toString().contains('FormatException')) rethrow;
+        throw Exception('Server error (${response.statusCode}): ${response.body}');
+      }
     }
   }
 
@@ -77,16 +106,23 @@ class NutritionService {
     final token = box.read('loginToken');
     if (token == null) throw Exception('Login required');
 
+    final url = '${AppConstants.baseUrl}/nutrition/';
+
     final response = await http.get(
-      Uri.parse('${AppConstants.baseUrl}/nutrition/home/'),
+      Uri.parse(url),
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
     );
 
-    print('Fetch Nutrition Home Status: ${response.statusCode}');
-    print('Fetch Nutrition Home Response: ${response.body}');
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Nutrition-Home',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(
@@ -94,14 +130,20 @@ class NutritionService {
       );
       return NutritionHomeResponse.fromJson(data);
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(
-        error['error'] ??
-            error['message'] ??
-            error['detail'] ??
-            'Failed to fetch nutrition data',
-      );
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(
+          error['error'] ??
+              error['message'] ??
+              error['detail'] ??
+              'Failed to fetch nutrition data (${response.statusCode})',
+        );
+      } catch (e) {
+        if (e is Exception && !e.toString().contains('FormatException')) rethrow;
+        throw Exception('Server error (${response.statusCode}): ${response.body}');
+      }
     }
   }
-
 }
+
+

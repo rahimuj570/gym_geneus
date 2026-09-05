@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
@@ -34,10 +35,25 @@ class HomeService extends GetxService {
 
       var response = await http.get(url, headers: headers);
 
+      FlutterDebugLogger.printJsonResponse(
+        url: url.toString(),
+        method: Method.GET,
+        tag: 'Home-Articles',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
       // Fallback: If user-specific fetch failed (e.g. status code 400/403 due to missing DOB),
       // fetch general public articles without token
       if (response.statusCode != 200 && token != null) {
         response = await http.get(url, headers: {"Accept": "application/json"});
+        FlutterDebugLogger.printJsonResponse(
+          url: url.toString(),
+          method: Method.GET,
+          tag: 'Home-Articles (Public Fallback)',
+          statusCode: response.statusCode,
+          responseBody: response.body,
+        );
       }
 
       if (response.statusCode == 200) {
@@ -58,6 +74,14 @@ class HomeService extends GetxService {
     final response = await http.get(
       url,
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url.toString(),
+      method: Method.GET,
+      tag: 'Home-ArticleById',
+      statusCode: response.statusCode,
+      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -81,6 +105,14 @@ class HomeService extends GetxService {
           "Authorization": "Bearer $token",
           "Accept": "application/json",
         },
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url.toString(),
+        method: Method.GET,
+        tag: 'Home-WorkoutVideos',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -117,6 +149,14 @@ class HomeService extends GetxService {
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
     );
 
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.GET,
+      tag: 'Home-Notifications',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
     if (response.statusCode == 200) {
       final List data = jsonDecode(utf8.decode(response.bodyBytes));
       return data.map((json) => AppNotification.fromJson(json)).toList();
@@ -129,13 +169,19 @@ class HomeService extends GetxService {
     final token = box.read("loginToken");
     if (token == null) throw Exception("Login required");
 
+    final url = '${AppConstants.baseUrl}/workouts/activities/';
     final response = await http.get(
-      Uri.parse('${AppConstants.baseUrl}/workouts/activities/'),
+      Uri.parse(url),
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
     );
 
-    print('Status Code: ${response.statusCode}');
-    print('Response Body: ${response.body}'); // Debug: see raw JSON
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Home-TodayActivities',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
 
     if (response.statusCode == 200) {
       try {
@@ -154,7 +200,6 @@ class HomeService extends GetxService {
         throw Exception("Failed to parse activities: $e");
       }
     } else {
-      print('Server Error: ${response.body}');
       throw Exception(
         "Failed to load activities – ${response.statusCode}: ${response.body}",
       );
@@ -182,8 +227,13 @@ class HomeService extends GetxService {
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
 
-    print('Challenges Status: ${response.statusCode}');
-    print('Response: ${response.body}');
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.GET,
+      tag: 'Home-Challenges',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
 
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body);
@@ -211,8 +261,13 @@ class HomeService extends GetxService {
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
     );
 
-    print("Daily Progress → ${response.statusCode}");
-    print(response.body);
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.GET,
+      tag: 'Home-DailyProgress',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
 
     if (response.statusCode == 200) {
       final json = jsonDecode(utf8.decode(response.bodyBytes));
@@ -243,19 +298,29 @@ class HomeService extends GetxService {
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
     );
 
-    print("Gallery Dashboard → Status: ${response.statusCode}");
-    print("Response: ${response.body}");
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.GET,
+      tag: 'Gallery-Dashboard',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
 
     if (response.statusCode == 200) {
       final json = jsonDecode(utf8.decode(response.bodyBytes));
       return GalleryDashboardResponse.fromJson(json);
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(
-        error['detail'] ??
-            error['message'] ??
-            "Failed to load gallery dashboard",
-      );
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(
+          error['detail'] ??
+              error['message'] ??
+              "Failed to load gallery dashboard (${response.statusCode})",
+        );
+      } catch (e) {
+        if (e is Exception && !e.toString().contains('FormatException')) rethrow;
+        throw Exception("Server error (${response.statusCode}): ${response.body}");
+      }
     }
   }
 
@@ -265,10 +330,12 @@ class HomeService extends GetxService {
     final token = box.read("loginToken");
     if (token == null) throw Exception("Login required");
 
+    final url = "${AppConstants.baseUrl}/gallery/";
+
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse("${AppConstants.baseUrl}/gallery/"),
+        Uri.parse(url),
       );
 
       request.headers['Authorization'] = 'Bearer $token';
@@ -287,8 +354,13 @@ class HomeService extends GetxService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      print("Upload Status: ${response.statusCode}");
-      print("Response Body: ${response.body}");
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Gallery-UploadPhoto',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
 
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
@@ -302,17 +374,38 @@ class HomeService extends GetxService {
     final token = box.read("loginToken");
     if (token == null) throw Exception("Login required");
 
+    final url = "${AppConstants.baseUrl}/gallery/";
+
     final response = await http.get(
-      Uri.parse("${AppConstants.baseUrl}/gallery/"),
+      Uri.parse(url),
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
     );
 
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Gallery-AllImages',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
     if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      final List<dynamic> results = json['results'];
-      return results.map((item) => GalleryImage.fromJson(item)).toList();
+      final dynamic decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      List<dynamic> results = [];
+      if (decoded is List) {
+        results = decoded;
+      } else if (decoded is Map<String, dynamic>) {
+        results = decoded['results'] ?? decoded['data'] ?? [];
+      }
+      return results.map((item) => GalleryImage.fromJson(item as Map<String, dynamic>)).toList();
     } else {
-      throw Exception("Failed to load gallery images");
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(error['detail'] ?? error['message'] ?? "Failed to load gallery images (${response.statusCode})");
+      } catch (e) {
+        if (e is Exception && !e.toString().contains('FormatException')) rethrow;
+        throw Exception("Server error (${response.statusCode}): ${response.body}");
+      }
     }
   }
 
@@ -327,6 +420,14 @@ class HomeService extends GetxService {
     final response = await http.get(
       uri,
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.GET,
+      tag: 'Home-Leaderboard',
+      statusCode: response.statusCode,
+      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -348,6 +449,14 @@ class HomeService extends GetxService {
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
     );
 
+    FlutterDebugLogger.printJsonResponse(
+      url: url.toString(),
+      method: Method.GET,
+      tag: 'Home-RecommendedWorkouts',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(
         utf8.decode(response.bodyBytes),
@@ -367,6 +476,14 @@ class HomeService extends GetxService {
     final response = await http.get(
       uri,
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.GET,
+      tag: 'Home-Search',
+      statusCode: response.statusCode,
+      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -408,8 +525,15 @@ class HomeService extends GetxService {
           "object_id": objectId,
         }),
       );
-print(response.statusCode);
-print(response.body);
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url.toString(),
+        method: Method.POST,
+        tag: 'Home-ToggleFavorite',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       print("Toggle favorite service error: $e");
@@ -417,3 +541,4 @@ print(response.body);
     }
   }
 }
+

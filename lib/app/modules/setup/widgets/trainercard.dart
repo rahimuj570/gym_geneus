@@ -12,6 +12,8 @@ class TrainerCard extends StatelessWidget {
   final String imagePath;
   final String name;
   final String subtitle;
+  final int? coachId;
+  final bool isFromSettings;
   final SetupController controller = Get.find();
 
   TrainerCard({
@@ -19,6 +21,8 @@ class TrainerCard extends StatelessWidget {
     required this.imagePath,
     required this.name,
     required this.subtitle,
+    this.coachId,
+    this.isFromSettings = false,
   }) : super(key: key);
 
   // This map matches your trainer names to backend IDs
@@ -34,16 +38,19 @@ class TrainerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      bool isSelected = controller.selectedTrainer.value == name;
+      final targetId = coachId ?? coachNameToId[name] ?? 1;
+      bool isSelected = controller.selectedTrainer.value == name ||
+          controller.selectedCoachId.value == targetId;
 
       return GestureDetector(
         onTap: () async {
           controller.selectTrainer(name);
-          final coachId = coachNameToId[name] ?? 1;
-          controller.selectedCoachId.value = coachId;
+          controller.selectedCoachId.value = targetId;
 
           final setupService = Get.find<SetupService>();
-          await setupService.updateCoach(coachId);
+          if (isFromSettings) {
+            await setupService.updateCoach(targetId);
+          }
         },
         child: Container(
           width: 360.w,

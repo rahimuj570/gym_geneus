@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +8,7 @@ import '../../../constants/appconstants.dart';
 
 import '../models/signupmodel.dart';
 import '../models/usermodel.dart';
+import '../views/login.dart';
 
 class AuthProvider {
   final String _baseUrl = AppConstants.baseUrl;
@@ -18,14 +20,21 @@ class AuthProvider {
   // login
   Future<String> login(UserModel user) async {
     try {
+      final url = '$_baseUrl/accounts/login/';
       final response = await http.post(
-        Uri.parse('$_baseUrl/accounts/login/'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(user.toJson()),
       );
 
-      print(response.statusCode);
-      print(response.body);
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-Login',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
@@ -63,19 +72,25 @@ class AuthProvider {
     final refreshToken = box.read('refreshToken');
 
     if (refreshToken == null || refreshToken.toString().isEmpty) {
-      print('No refresh token found. Forcing logout...');
-      _forceLogout();
+      print('No refresh token found.');
       return false;
     }
 
     try {
+      final url = '$_baseUrl/accounts/token/refresh/';
       final response = await http.post(
-        Uri.parse('$_baseUrl/accounts/token/refresh/'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh': refreshToken}),
       );
 
-      print('Token refresh status: ${response.statusCode}');
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-RefreshToken',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -107,18 +122,29 @@ class AuthProvider {
     box.remove('loginToken');
     box.remove('refreshToken');
     box.remove('actionToken');
-    Get.offAllNamed('/login');
+    if (Get.key.currentState != null) {
+      Get.offAll(() => Login());
+    }
   }
 
   // register
   Future<String> register(SignupModel newuser) async {
     try {
-      print(_baseUrl);
+      final url = '$_baseUrl/accounts/register/';
       final response = await http.post(
-        Uri.parse('$_baseUrl/accounts/register/'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(newuser.toJson()),
       );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-Register',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
       emaill.value = newuser.email;
       password.value = newuser.password;
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -156,12 +182,21 @@ class AuthProvider {
 
   Future<String> activateAccount(String email, String otp) async {
     try {
+      final url = '$_baseUrl/accounts/verify-email/';
       final response = await http.post(
-        Uri.parse('$_baseUrl/accounts/verify-email/'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'otp': otp}),
       );
-      print(response.statusCode);
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-VerifyEmail',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
       if (response.statusCode == 200) {
         await login(UserModel(email: emaill.value, password: password.value));
         return "success";
@@ -185,8 +220,9 @@ class AuthProvider {
   // otpactivate
   Future<String> otpActivate(String email, String otp) async {
     try {
+      final url = '$_baseUrl/auth/verify_otp/';
       final response = await http.post(
-        Uri.parse('$_baseUrl/auth/verify_otp/'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -195,10 +231,17 @@ class AuthProvider {
         }),
       );
 
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-VerifyOTP',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final token = data['action_token'];
-        print(token);
         if (token != null) box.write('actionToken', token);
         return "success";
       }
@@ -217,11 +260,20 @@ class AuthProvider {
   // resend otp
   Future<String> resendOtp(String email) async {
     try {
-      print(email);
+      final url = '$_baseUrl/accounts/email-verification/resend/';
       final r = await http.post(
-        Uri.parse('$_baseUrl/accounts/email-verification/resend/'),
+        Uri.parse(url),
         body: {'email': email},
       );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-ResendOTP',
+        statusCode: r.statusCode,
+        responseBody: r.body,
+      );
+
       if (r.statusCode == 200) return "success";
       final data = jsonDecode(utf8.decode(r.bodyBytes));
       if (data is Map && data.containsKey('detail')) return data['detail'].toString();
@@ -234,11 +286,20 @@ class AuthProvider {
   // reset pass req
   Future<String> resetPassword(String email) async {
     try {
-      print(email);
+      final url = '$_baseUrl/auth/request_password_reset/';
       final r = await http.post(
-        Uri.parse('$_baseUrl/auth/request_password_reset/'),
+        Uri.parse(url),
         body: {'email': email},
       );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-RequestPasswordReset',
+        statusCode: r.statusCode,
+        responseBody: r.body,
+      );
+
       if (r.statusCode == 200) return "success";
       final data = jsonDecode(utf8.decode(r.bodyBytes));
       if (data is Map) {
@@ -257,9 +318,9 @@ class AuthProvider {
   // set new password
   Future<bool> setNewPassword(String email, String newPassword) async {
     final token = box.read("actionToken");
-    print(token);
+    final url = '$_baseUrl/auth/reset_password/';
     final response = await http.post(
-      Uri.parse('$_baseUrl/auth/reset_password/'),
+      Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         "email": email,
@@ -268,17 +329,24 @@ class AuthProvider {
       }),
     );
 
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.POST,
+      tag: 'Auth-ResetPassword',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
     if (response.statusCode == 200) {
-      print('Password reset successful');
       final data = jsonDecode(response.body);
       if (data['access_token'] != null) {
         box.write('loginToken', data['access_token']);
       }
       return true;
     }
-    print('Set password failed: ${response.body}');
     return false;
   }
 }
+
 
 

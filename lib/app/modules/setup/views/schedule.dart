@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:kenzeno/app/modules/setup/views/goal.dart';
+import 'package:kenzeno/app/widgets/custom_snackbar.dart';
 import '../../../res/assets/asset.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
@@ -153,16 +154,21 @@ class ChooseSchedulePage extends StatelessWidget {
             () => Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: CustomButton(
-                onPress: controller.canContinue
-                    ? () async {
-                        print("Time: ${controller.preferredWorkoutTime}");
-                        print("Days: ${controller.preferredWorkoutDayIds}");
-                        Get.to(
-                          () => GoalSelectionPage(),
-                          transition: Transition.rightToLeft,
-                        );
-                      }
-                    : null,
+                onPress: () async {
+                  if (!controller.canContinue) {
+                    CustomSnackbar.showWarning(
+                      'Please select at least one workout day to continue',
+                      title: 'Schedule Required',
+                    );
+                    return;
+                  }
+                  print("Time: ${controller.preferredWorkoutTime}");
+                  print("Days: ${controller.preferredWorkoutDayIds}");
+                  Get.to(
+                    () => GoalSelectionPage(),
+                    transition: Transition.rightToLeft,
+                  );
+                },
                 title: "Continue",
                 fontSize: 16.sp,
                 height: 45.h,
@@ -174,7 +180,9 @@ class ChooseSchedulePage extends StatelessWidget {
                 buttonColor: controller.canContinue
                     ? AppColor.customPurple
                     : AppColor.white15,
-                borderColor: AppColor.white15,
+                borderColor: controller.canContinue
+                    ? AppColor.customPurple
+                    : AppColor.white15,
               ),
             ),
           ),

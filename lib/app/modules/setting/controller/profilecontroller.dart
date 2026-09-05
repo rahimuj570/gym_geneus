@@ -72,17 +72,31 @@ class ProfileController extends GetxController {
   }
 
   // Editing Controllers
-  final fullNameController = TextEditingController();
-  final dobController = TextEditingController();
-  final weightController = TextEditingController();
-  final heightController = TextEditingController();
-  final emailController = TextEditingController();
-  final mobileController = TextEditingController();
+  late TextEditingController fullNameController;
+  late TextEditingController dobController;
+  late TextEditingController weightController;
+  late TextEditingController heightController;
+  late TextEditingController emailController;
+  late TextEditingController mobileController;
   var selectedGender = RxnString();
+
+  void _initControllers() {
+    fullNameController = TextEditingController();
+    dobController = TextEditingController();
+    weightController = TextEditingController();
+    heightController = TextEditingController();
+    emailController = TextEditingController();
+    mobileController = TextEditingController();
+  }
 
   void _updateEditingControllers() {
     final p = profile.value;
-    fullNameController.text = p.fullName ?? '';
+    try {
+      fullNameController.text = p.fullName ?? '';
+    } catch (_) {
+      _initControllers();
+      fullNameController.text = p.fullName ?? '';
+    }
     
     final todayStr = DateTime.now().toIso8601String().split('T').first;
     if (p.dateOfBirth != null && p.dateOfBirth!.isNotEmpty && p.dateOfBirth != todayStr) {
@@ -128,6 +142,7 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _initControllers();
     fetchProfile();
   }
 
@@ -261,12 +276,14 @@ class ProfileController extends GetxController {
 
   @override
   void onClose() {
-    fullNameController.dispose();
-    dobController.dispose();
-    weightController.dispose();
-    heightController.dispose();
-    emailController.dispose();
-    mobileController.dispose();
+    try {
+      fullNameController.dispose();
+      dobController.dispose();
+      weightController.dispose();
+      heightController.dispose();
+      emailController.dispose();
+      mobileController.dispose();
+    } catch (_) {}
     super.onClose();
   }
 }

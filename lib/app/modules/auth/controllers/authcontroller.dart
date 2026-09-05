@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -47,10 +48,12 @@ class Authcontroller extends GetxController {
   String registeredEmail = '';
 
   @override
-  void onInit() async {
+  void onInit() {
     super.onInit();
-    await _authProvider.refreshAccessToken();
-    print(Icons.headphones);
+    final refreshToken = storage.read('refreshToken');
+    if (refreshToken != null && refreshToken.toString().isNotEmpty) {
+      _authProvider.refreshAccessToken();
+    }
     final savedEmail = storage.read<String>('email');
     final savedPassword = storage.read<String>('password');
     if (savedEmail != null && savedPassword != null) {
@@ -58,7 +61,6 @@ class Authcontroller extends GetxController {
       passwordController.text = savedPassword;
       ischecked.value = true;
     }
-    print("hello");
   }
 
   void _validateInputs({required bool isLogin}) {
@@ -123,14 +125,23 @@ class Authcontroller extends GetxController {
       final String email = account.email;
       isloadinggmail.value = true;
 
+      final url = '$_baseUrl/accounts/login-social/';
       final response = await http.post(
-        Uri.parse('$_baseUrl/accounts/login-social/'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "name": name,
           "email": email,
           "auth_provider": "google",
         }),
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-GoogleSocialLogin',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {

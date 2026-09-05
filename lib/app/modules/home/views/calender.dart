@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:kenzeno/app/modules/home/views/progressgallery.dart';
 import 'package:kenzeno/app/modules/nutrition/controllers/nutri_controller.dart';
+import 'package:kenzeno/app/modules/nutrition/views/mealoverall.dart';
 
 import '../../../res/assets/asset.dart';
 import '../../../res/colors/colors.dart';
@@ -940,6 +941,29 @@ class NutriTrackView extends StatelessWidget {
                 _buildTodaysMealsSection(data),
                 SizedBox(height: 30.h),
                 _buildNutritionBreakdown(data),
+                SizedBox(height: 30.h),
+                Container(
+                  width: double.infinity,
+                  height: 54.h,
+                  decoration: BoxDecoration(
+                    color: AppColor.customPurple,
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                  child: TextButton.icon(
+                    onPressed: () => Get.to(
+                      () => MealIdeasPage(),
+                      transition: Transition.rightToLeft,
+                    ),
+                    icon: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+                    label: Text(
+                      "Scan Another Meal",
+                      style: AppTextStyles.poppinsBold.copyWith(
+                        color: Colors.white,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                  ),
+                ),
                 SizedBox(height: 40.h),
               ],
             ),
@@ -957,7 +981,7 @@ class NutriTrackView extends StatelessWidget {
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          SizedBox(height: 150.h),
+          SizedBox(height: 120.h),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -972,6 +996,7 @@ class NutriTrackView extends StatelessWidget {
                   'No nutrition data yet',
                   style: AppTextStyles.poppinsMedium.copyWith(
                     color: AppColor.white,
+                    fontSize: 18.sp,
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -979,6 +1004,29 @@ class NutriTrackView extends StatelessWidget {
                   'Scan your first meal to get started!',
                   style: AppTextStyles.poppinsRegular.copyWith(
                     color: AppColor.gray9CA3AF,
+                    fontSize: 13.sp,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                ElevatedButton.icon(
+                  onPressed: () => Get.to(
+                    () => MealIdeasPage(),
+                    transition: Transition.rightToLeft,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.customPurple,
+                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                  ),
+                  icon: const Icon(Icons.camera_alt, color: Colors.white),
+                  label: Text(
+                    'Scan Meal',
+                    style: AppTextStyles.poppinsBold.copyWith(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ),
               ],

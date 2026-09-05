@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
@@ -121,10 +122,10 @@ Future<void> sendTokenToBackend(String token) async {
 
   if (loginToken == null) return;
 
-  final url = Uri.parse('$_baseUrl/utils/register_device_token/');
+  final url = '$_baseUrl/utils/register_device_token/';
 
   final response = await http.post(
-    url,
+    Uri.parse(url),
     headers: {
       'Authorization': 'Bearer $loginToken',
       'Content-Type': 'application/json',
@@ -132,11 +133,13 @@ Future<void> sendTokenToBackend(String token) async {
     body: jsonEncode({'device_token': token}),
   );
 
-  if (response.statusCode == 200 || response.statusCode == 201) {
-    print('✅ Token successfully registered with backend');
-  } else {
-    print('❌ Failed to register token: ${response.statusCode} - ${response.body}');
-  }
+  FlutterDebugLogger.printJsonResponse(
+    url: url,
+    method: Method.POST,
+    tag: 'FCM-RegisterDeviceToken',
+    statusCode: response.statusCode,
+    responseBody: response.body,
+  );
 }
 
 // ------------------------ Unregister Token ------------------------
@@ -147,10 +150,10 @@ Future<void> unregisterFCM() async {
 
   if (loginToken == null || token == null) return;
 
-  final url = Uri.parse('$_baseUrl/notification/unregister_device_token/');
+  final url = '$_baseUrl/notification/unregister_device_token/';
 
   final response = await http.post(
-    url,
+    Uri.parse(url),
     headers: {
       'Authorization': 'Bearer $loginToken',
       'Content-Type': 'application/json',
@@ -158,9 +161,11 @@ Future<void> unregisterFCM() async {
     body: jsonEncode({'token': token}),
   );
 
-  if (response.statusCode == 200) {
-    print('✅ Token successfully unregistered with backend');
-  } else {
-    print('❌ Failed to unregister token: ${response.statusCode} - ${response.body}');
-  }
+  FlutterDebugLogger.printJsonResponse(
+    url: url,
+    method: Method.POST,
+    tag: 'FCM-UnregisterDeviceToken',
+    statusCode: response.statusCode,
+    responseBody: response.body,
+  );
 }

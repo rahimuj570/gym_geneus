@@ -151,14 +151,11 @@ class Bodyanalysis extends StatelessWidget {
                 ),
               ),
 
-              Spacer(),
-              // Button — ONLY THIS CHANGED
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
                 child: CustomButton(
-                  onPress: () async =>
-                      _showPhotoSourceSheet(), // ← Only this line changed
-                  title: "Got it,lets scan",
+                  onPress: () async => _showPhotoSourceSheet(),
+                  title: "Got it, lets scan",
                   fontSize: 14.sp,
                   height: 45.h,
                   svgorimage: true,
@@ -173,7 +170,28 @@ class Bodyanalysis extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 40.h),
+              SizedBox(height: 12.h),
+
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Get.to(
+                      () => FillProfilePage(),
+                      transition: Transition.rightToLeft,
+                    );
+                  },
+                  child: Text(
+                    "Skip for now",
+                    style: AppTextStyles.poppinsRegular.copyWith(
+                      color: AppColor.white,
+                      fontSize: 14.sp,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 25.h),
             ],
           ),
         ],

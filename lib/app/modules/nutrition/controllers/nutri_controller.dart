@@ -10,7 +10,6 @@ import '../views/scannedmealdetails.dart';
 import 'package:toastification/toastification.dart';
 import 'package:kenzeno/app/res/fonts/textstyle.dart';
 import 'package:kenzeno/app/res/colors/colors.dart';
-// your beautiful page
 
 class NutritionController extends GetxController {
   final NutritionService _service = NutritionService();
@@ -23,6 +22,7 @@ class NutritionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    print('📦 [NutritionController] Initialized. Fetching nutrition data...');
     fetchNutritionData();
   }
 
@@ -30,10 +30,12 @@ class NutritionController extends GetxController {
     try {
       isLoading(true);
       update();
+      print('🔄 [NutritionController] Calling fetchNutritionHome()...');
       final data = await _service.fetchNutritionHome();
       nutritionData.value = data;
+      print('✅ [NutritionController] Nutrition data loaded successfully. Total meals: ${data.totalMeals}, Streak: ${data.streak}');
     } catch (e) {
-      print("Fetch nutrition error: $e");
+      print("❌ [NutritionController] Fetch nutrition error: $e");
       nutritionData.value = null;
     } finally {
       isLoading(false);
@@ -46,9 +48,10 @@ class NutritionController extends GetxController {
   Future<void> analyzeMeal(File imageFile) async {
     try {
       isAnalyzing(true);
+      print('🔄 [NutritionController] Starting analyzeMeal with image: ${imageFile.path}');
       final result = await _service.uploadMealImage(imageFile);
       currentAnalysisResult = result;
-      print("${currentAnalysisResult?.tempUploadId}");
+      print("✅ [NutritionController] Meal analyzed successfully: tempUploadId = ${currentAnalysisResult?.tempUploadId}, mealName = ${currentAnalysisResult?.mealName}");
 
       Get.to(
         () => RedesignedScannedMealPage(
@@ -57,6 +60,7 @@ class NutritionController extends GetxController {
         ),
       );
     } catch (e) {
+      print('❌ [NutritionController] Error analyzing meal: $e');
       rethrow; // Let the page handle error + close dialog
     } finally {
       isAnalyzing(false);
@@ -65,6 +69,7 @@ class NutritionController extends GetxController {
 
   Future<bool> saveCurrentMeal() async {
     if (currentAnalysisResult == null) {
+      print('⚠️ [NutritionController] No meal to save (currentAnalysisResult is null)');
       toastification.show(
         type: ToastificationType.error,
         style: ToastificationStyle.fillColored,
@@ -88,7 +93,9 @@ class NutritionController extends GetxController {
 
     try {
       isSaving(true);
+      print('🔄 [NutritionController] Saving meal with tempUploadId: ${currentAnalysisResult!.tempUploadId}');
       await _service.saveMealUpload(currentAnalysisResult!.tempUploadId);
+      print('✅ [NutritionController] Meal saved successfully. Refreshing nutrition data...');
       fetchNutritionData();
       toastification.show(
         type: ToastificationType.success,
@@ -110,6 +117,7 @@ class NutritionController extends GetxController {
       );
       return true;
     } catch (e) {
+      print('❌ [NutritionController] Error saving meal: $e');
       toastification.show(
         type: ToastificationType.error,
         style: ToastificationStyle.fillColored,
@@ -133,6 +141,5 @@ class NutritionController extends GetxController {
       isSaving(false);
     }
   }
-
-
 }
+

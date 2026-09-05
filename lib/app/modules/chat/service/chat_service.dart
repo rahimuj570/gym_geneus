@@ -1,6 +1,7 @@
 // lib/app/data/services/chat_service.dart
 
 import 'dart:convert';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
@@ -37,14 +38,16 @@ class ChatService extends GetxService {
     }
 
     final url = Uri.parse('${AppConstants.baseUrl}/ai_assistant/');
-    print("Fetching chat from: $url");
 
     try {
       final response = await http.get(url, headers: _authHeaders);
 
-      print("GET /ai_assistant/ → Status: ${response.statusCode}");
-      print(
-        "Response body: ${response.body.substring(0, response.body.length.clamp(0, 500))}...",
+      FlutterDebugLogger.printJsonResponse(
+        url: url.toString(),
+        method: Method.GET,
+        tag: 'Chat-GetConversation',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -70,8 +73,6 @@ class ChatService extends GetxService {
     }
 
     final url = Uri.parse('${AppConstants.baseUrl}/ai_assistant/');
-    print("Sending message to: $url");
-    print("Payload: {\"user_input\": \"$userInput\"}");
 
     try {
       final response = await http.post(
@@ -80,8 +81,13 @@ class ChatService extends GetxService {
         body: jsonEncode({"user_input": userInput}),
       );
 
-      print("POST /ai_assistant/ → Status: ${response.statusCode}");
-      print("Response: ${response.body}");
+      FlutterDebugLogger.printJsonResponse(
+        url: url.toString(),
+        method: Method.POST,
+        tag: 'Chat-SendMessage',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return; // Success
@@ -96,3 +102,4 @@ class ChatService extends GetxService {
     }
   }
 }
+

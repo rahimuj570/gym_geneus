@@ -105,7 +105,7 @@ class _GoalSelectionButton extends StatelessWidget {
 // --- 4. MAIN PAGE WIDGET ---
 
 class GoalSelectionPage extends StatelessWidget {
-  final SetupController controller = Get.put(SetupController());
+  final SetupController controller = Get.find<SetupController>();
 
   @override
   Widget build(BuildContext context) {

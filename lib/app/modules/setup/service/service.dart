@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:kenzeno/app/services/api_client.dart';
@@ -35,9 +36,8 @@ class SetupService extends GetxService {
       final response = await ApiClient.patch(
         Uri.parse("${AppConstants.baseUrl}/accounts/profile/update/"),
         body: jsonEncode({"coach_type": coachId}),
+        tag: 'Setup-UpdateCoach',
       );
-
-      print("Update coach status: ${response.statusCode}, body: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         CustomSnackbar.showSuccess("Coach updated successfully!");
@@ -49,7 +49,6 @@ class SetupService extends GetxService {
         }
         return true;
       } else {
-        print("Failed update coach: ${response.statusCode} ${response.body}");
         CustomSnackbar.showError("Failed to update coach. Please try again.");
         return false;
       }
@@ -68,58 +67,101 @@ class SetupService extends GetxService {
     }
 
     final controller = Get.find<SetupController>();
-    final authcontroller = Get.find<Authcontroller>();
     final schedulecontroller = Get.find<ScheduleController>();
 
+    // ⭐️ Validation: Ensure no required onboarding field is missing
+    if (controller.selectedGender.value.trim().isEmpty) {
+      CustomSnackbar.showWarning(
+        "Please select your gender.",
+        title: "Missing Gender",
+      );
+      return false;
+    }
+    if (controller.selectedGoal.value.trim().isEmpty) {
+      CustomSnackbar.showWarning(
+        "Please select your fitness goal.",
+        title: "Missing Goal",
+      );
+      return false;
+    }
+    if (controller.selectedActivityLevel.value.trim().isEmpty) {
+      CustomSnackbar.showWarning(
+        "Please select your activity level.",
+        title: "Missing Activity Level",
+      );
+      return false;
+    }
+    if (schedulecontroller.preferredWorkoutTime.trim().isEmpty) {
+      CustomSnackbar.showWarning(
+        "Please choose your preferred workout time.",
+        title: "Missing Schedule Time",
+      );
+      return false;
+    }
+    if (controller.selectedCoachId.value == null ||
+        controller.selectedCoachId.value! <= 0) {
+      CustomSnackbar.showWarning(
+        "Please select a coach.",
+        title: "Missing Coach",
+      );
+      return false;
+    }
+
+    final url = "${AppConstants.baseUrl}/accounts/profile/update/";
     var request = http.MultipartRequest(
       'PATCH',
-      Uri.parse("${AppConstants.baseUrl}/accounts/profile/update/"),
+      Uri.parse(url),
     );
 
     request.headers["Authorization"] = "Bearer $token";
 
-    // Add only non-empty fields to prevent backend validation errors
     final Map<String, String> fields = {};
 
-    final email = authcontroller.emailController.text.trim();
-    if (email.isNotEmpty) fields["email"] = email;
+    if (Get.isRegistered<Authcontroller>()) {
+      final email = Get.find<Authcontroller>().emailController.text.trim();
+      if (email.isNotEmpty) fields["email"] = email;
+    }
 
-    if (controller.phonenumber.value.isNotEmpty) {
-      fields["phone_number"] = controller.phonenumber.value;
+    if (controller.fullName.value.trim().isNotEmpty) {
+      fields["full_name"] = controller.fullName.value.trim();
     }
-    if (controller.fullName.value.isNotEmpty) {
-      fields["full_name"] = controller.fullName.value;
+    if (controller.phonenumber.value.trim().isNotEmpty) {
+      fields["phone_number"] = controller.phonenumber.value.trim();
     }
-    if (controller.selectedGender.value.isNotEmpty) {
-      fields["gender"] = controller.selectedGender.value.toLowerCase();
-    }
+
+    fields["gender"] = controller.selectedGender.value.trim().toLowerCase();
+
     if (controller.selectedAge.value > 0) {
       fields["age"] = controller.selectedAge.value.toString();
+      final birthYear = DateTime.now().year - controller.selectedAge.value;
+      fields["date_of_birth"] = "$birthYear-01-01";
     }
+
     if (controller.height.value > 0) {
       fields["height_cm"] = controller.height.value.round().toString();
     }
+
     if (controller.weight.value > 0) {
-      fields["weight_kg"] = controller.weightUnit.value == 'kg'
+      final weightKg = controller.weightUnit.value == 'kg'
           ? controller.weight.value.round().toString()
           : (controller.weight.value / 2.20462).round().toString();
+      fields["weight_kg"] = weightKg;
     }
-    if (controller.selectedGoal.value.isNotEmpty) {
-      fields["goal"] = controller.selectedGoal.value;
-    }
-    if (controller.selectedActivityLevel.value.isNotEmpty) {
-      fields["activity_level"] = controller.selectedActivityLevel.value.toLowerCase();
-    }
-    if (controller.selectedCoachId.value != null && controller.selectedCoachId.value! > 0) {
-      fields["coach_type"] = controller.selectedCoachId.value.toString();
-    }
-    if (schedulecontroller.preferredWorkoutTime.isNotEmpty) {
-      fields["preferred_workout_time"] = schedulecontroller.preferredWorkoutTime;
-    }
+
+    // Goal and Activity Level
+    fields["goal"] = controller.selectedGoal.value.trim();
+    fields["activity_level"] =
+        controller.selectedActivityLevel.value.trim().toLowerCase();
+
+    // Coach
+    fields["coach_type"] = controller.selectedCoachId.value.toString();
+
+    // Schedule
+    fields["preferred_workout_time"] = schedulecontroller.preferredWorkoutTime;
 
     request.fields.addAll(fields);
 
-    // Send each day ID separately
+    // Preferred workout days
     for (final dayId in schedulecontroller.preferredWorkoutDayIds) {
       request.fields['preferred_workout_day_ids'] = dayId.toString();
     }
@@ -139,24 +181,33 @@ class SetupService extends GetxService {
     }
 
     try {
-      final response = await request.send();
-      final resp = await http.Response.fromStream(response);
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final responseBody = utf8.decode(response.bodyBytes);
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.PATCH,
+        tag: 'Setup-CompleteSetup',
+        statusCode: response.statusCode,
+        responseBody: responseBody,
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        CustomSnackbar.showSuccess("Coach updated successfully!");
-        if (Get.key.currentState?.canPop() == true) {
-          Get.back();
-        } else {
-          Get.offAll(() => Subscription());
+        box.write("userCoachId", controller.selectedCoachId.value);
+        if (Get.isRegistered<ProfileController>()) {
+          Get.find<ProfileController>().setCoachId(controller.selectedCoachId.value!);
+          Get.find<ProfileController>().fetchProfile();
         }
+        CustomSnackbar.showSuccess("Profile completed successfully!");
+        Get.offAll(() => Subscription());
         return true;
       } else {
-        print("Failed: ${response.statusCode} ${resp.body}");
-        CustomSnackbar.showError("Failed to save profile. Please try again.");
+        CustomSnackbar.showError("Failed to save profile: ${response.statusCode}");
         return false;
       }
     } catch (e) {
-      print("Error: $e");
+      print("❌ Setup Error: $e");
       CustomSnackbar.showError("Network error while saving profile.");
       return false;
     }
@@ -166,11 +217,18 @@ class SetupService extends GetxService {
     final token = box.read("loginToken");
     if (token == null) throw Exception("Not logged in");
 
+    final url = "${AppConstants.baseUrl}/accounts/coaches/";
     final response = await http.get(
-      Uri.parse(
-        "${AppConstants.baseUrl}/accounts/coaches/",
-      ), // change if your endpoint is different
+      Uri.parse(url),
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Setup-FetchCoaches',
+      statusCode: response.statusCode,
+      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -183,3 +241,4 @@ class SetupService extends GetxService {
     }
   }
 }
+

@@ -15,7 +15,9 @@ import 'package:kenzeno/app/res/fonts/textstyle.dart';
 import 'package:kenzeno/app/res/colors/colors.dart';
 
 class MealIdeasPage extends StatelessWidget {
-  final NutritionController controller = Get.find<NutritionController>();
+  NutritionController get controller => Get.isRegistered<NutritionController>()
+      ? Get.find<NutritionController>()
+      : Get.put(NutritionController());
 
   MealIdeasPage({super.key});
 

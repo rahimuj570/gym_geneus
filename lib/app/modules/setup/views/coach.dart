@@ -1,20 +1,21 @@
-// lib/app/modules/setup/views/coach_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:kenzeno/app/modules/setup/controllers/setup_controller.dart';
 import 'package:kenzeno/app/res/assets/asset.dart';
 import 'package:kenzeno/app/widgets/backbutton_widget.dart';
+import 'package:kenzeno/app/widgets/custom_button.dart';
 
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
+import '../service/service.dart';
 import '../widgets/trainercard.dart';
 
 class CoachPage extends StatelessWidget {
+  final bool isFromSettings;
   final SetupController controller = Get.find<SetupController>();
 
-  CoachPage({Key? key}) : super(key: key);
+  CoachPage({Key? key, this.isFromSettings = false}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +61,7 @@ class CoachPage extends StatelessWidget {
               Expanded(
                 child: Obx(() {
                   if (controller.isLoading.value) {
-                    return Center(
+                    return const Center(
                       child: CircularProgressIndicator(
                         color: AppColor.customPurple,
                       ),
@@ -93,11 +94,44 @@ class CoachPage extends StatelessWidget {
                         imagePath: imagePath,
                         name: coach.name,
                         subtitle: coach.behavior,
+                        coachId: coach.id,
+                        isFromSettings: isFromSettings,
                       );
                     },
                   );
                 }),
               ),
+
+              // Complete Setup button (only shown in initial onboarding flow)
+              if (!isFromSettings)
+                Obx(() {
+                  final isSelected = controller.selectedCoachId.value != null &&
+                      controller.selectedCoachId.value! > 0;
+
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 20.h, top: 10.h),
+                    child: CustomButton(
+                      onPress: isSelected
+                          ? () async {
+                              final setupService = Get.find<SetupService>();
+                              await setupService.completeSetup();
+                            }
+                          : null,
+                      title: "Complete Setup",
+                      fontSize: 16.sp,
+                      height: 45.h,
+                      svgorimage: true,
+                      trailing: ImageAssets.svg3,
+                      radius: 26.r,
+                      fontWeight: FontWeight.w700,
+                      textColor: Colors.white,
+                      buttonColor: isSelected
+                          ? AppColor.customPurple
+                          : AppColor.white15,
+                      borderColor: AppColor.white15,
+                    ),
+                  );
+                }),
             ],
           ),
         ),

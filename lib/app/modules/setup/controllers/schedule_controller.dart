@@ -49,8 +49,9 @@ class ScheduleController extends GetxController {
     return "${hour24.toString().padLeft(2, '0')}:${selectedMinute.value.toString().padLeft(2, '0')}";
   }
 
-  // FIXED: Send as List<int>, NOT string
-  List<int> get preferredWorkoutDayIds => selectedDayIds.toList()..sort();
+  // FIXED: Send 1-based IDs (1..7) for database compatibility
+  List<int> get preferredWorkoutDayIds =>
+      selectedDayIds.map((id) => id + 1).toList()..sort();
 
   bool get canContinue => selectedDayIds.isNotEmpty;
 

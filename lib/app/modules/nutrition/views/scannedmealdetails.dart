@@ -30,7 +30,9 @@ extension StringCasing on String {
 class RedesignedScannedMealPage extends StatelessWidget {
   final File imageFile;
   final MealAnalysisResult analysisResult;
-  final NutritionController controller = Get.find();
+  NutritionController get controller => Get.isRegistered<NutritionController>()
+      ? Get.find<NutritionController>()
+      : Get.put(NutritionController());
 
   RedesignedScannedMealPage({
     super.key,

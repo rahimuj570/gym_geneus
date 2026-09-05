@@ -176,18 +176,17 @@ class SubscriptionController extends GetxController {
         _logOfferingsDetails(currentOfferings);
       } catch (e) {
         print("⚠️ RevenueCat getOfferings error with primary key: $e");
-        if (e.toString().contains('BILLING_UNAVAILABLE') ||
-            e.toString().contains('PurchaseNotAllowedError')) {
-          print(
-            "🔄 Billing unavailable on device. Retrying with RevenueCat Test Store Key ($testKey)...",
-          );
+        print(
+          "🔄 Attempting RevenueCat Test Store Key ($testKey)...",
+        );
+        try {
           await Purchases.configure(
             PurchasesConfiguration(testKey)..appUserID = null,
           );
           currentOfferings = await Purchases.getOfferings();
           _logOfferingsDetails(currentOfferings);
-        } else {
-          rethrow;
+        } catch (testErr) {
+          print("ℹ️ RevenueCat StoreKit/Play Store not configured for test key ($testErr). Using fallback plans.");
         }
       }
 

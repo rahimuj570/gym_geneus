@@ -1,5 +1,7 @@
 // nutrition_home_response.dart
 
+import '../../../constants/appconstants.dart';
+
 class NutritionHomeResponse {
   final String message;
   final int totalMeals;
@@ -21,7 +23,7 @@ class NutritionHomeResponse {
 
   factory NutritionHomeResponse.fromJson(Map<String, dynamic> json) {
     return NutritionHomeResponse(
-      message: json['message'] ?? 'Welcome!',
+      message: json['message']?.toString() ?? 'Welcome!',
       totalMeals: (json['total_meals'] as num?)?.toInt() ?? 0,
       streak: (json['streak'] as num?)?.toInt() ?? 0,
       caloriesTarget: (json['calories_target'] as num?)?.toInt() ?? 0,
@@ -62,16 +64,26 @@ class TodayMeal {
     required this.createdAt,
   });
 
+  static String _formatImageUrl(dynamic path) {
+    if (path == null) return '';
+    final str = path.toString();
+    if (str.isEmpty) return '';
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      return str;
+    }
+    return '${AppConstants.baseUrimage}$str';
+  }
+
   factory TodayMeal.fromJson(Map<String, dynamic> json) {
     return TodayMeal(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      mealName: json['meal_name'] ?? 'Meal',
+      mealName: json['meal_name']?.toString() ?? 'Meal',
       estimatedCalories: (json['estimated_calories'] as num?)?.toInt() ?? 0,
-      imageUrl: json['image'] ?? '',
-      aiAnalysis: json['ai_analysis'] ?? 'Analysis unavailable',
-      improvements: json['improvements'] ?? '',
+      imageUrl: _formatImageUrl(json['image']),
+      aiAnalysis: json['ai_analysis']?.toString() ?? 'Analysis unavailable',
+      improvements: json['improvements']?.toString() ?? '',
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at']) ?? DateTime.now()
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
     );
   }
@@ -90,9 +102,10 @@ class NutrientBreakdown {
 
   factory NutrientBreakdown.fromJson(Map<String, dynamic> json) {
     return NutrientBreakdown(
-      name: json['name'] ?? '',
+      name: json['name']?.toString() ?? '',
       amount: (json['amount'] as num?)?.toInt() ?? 0,
-      unit: json['unit'] ?? '',
+      unit: json['unit']?.toString() ?? '',
     );
   }
 }
+

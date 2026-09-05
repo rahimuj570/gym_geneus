@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
@@ -34,15 +35,24 @@ class ForumController extends GetxController {
       final token = box.read("loginToken");
       if (token == null) throw Exception("Not logged in");
 
+      final url = "${AppConstants.baseUrl}/community/forum-posts/";
       final response = await http
           .get(
-            Uri.parse("${AppConstants.baseUrl}/community/forum-posts/"),
+            Uri.parse(url),
             headers: {
               "Authorization": "Bearer $token",
               "Accept": "application/json",
             },
           )
           .timeout(const Duration(seconds: 15));
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.GET,
+        tag: 'Forum-FetchPosts',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
@@ -87,9 +97,18 @@ class ForumController extends GetxController {
 
     try {
       isLoadingComments.value = true;
+      final url = "${AppConstants.baseUrl}/community/forum-comments/$postId/";
       final response = await http.get(
-        Uri.parse("${AppConstants.baseUrl}/community/forum-comments/$postId/"),
+        Uri.parse(url),
         headers: {"Authorization": "Bearer $token"},
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.GET,
+        tag: 'Forum-FetchComments',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -106,7 +125,6 @@ class ForumController extends GetxController {
         );
       }
     } catch (e) {
-      print("Fetch comments error: $e");
       comments.clear();
       toastification.show(
         type: ToastificationType.error,
@@ -137,15 +155,23 @@ class ForumController extends GetxController {
     if (token == null) return;
 
     try {
+      final url = "${AppConstants.baseUrl}/community/forum-post-like/";
       final response = await http.post(
-        Uri.parse("${AppConstants.baseUrl}/community/forum-post-like/"),
+        Uri.parse(url),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode({"post": id}),
       );
-      print(response.statusCode);
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Forum-ToggleLike',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
 
       refreshPosts();
     } catch (e) {
@@ -178,13 +204,22 @@ class ForumController extends GetxController {
     if (token == null) return false;
 
     try {
+      final url = "${AppConstants.baseUrl}/community/forum-comment-create/";
       final response = await http.post(
-        Uri.parse("${AppConstants.baseUrl}/community/forum-comment-create/"),
+        Uri.parse(url),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode({"post": postId, "content": content.trim()}),
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Forum-CreateComment',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 201) {
@@ -200,7 +235,7 @@ class ForumController extends GetxController {
         return true;
       }
     } catch (e) {
-      print("Create comment error: $e");
+      // Logged or handled
     }
     return false;
   }
@@ -214,13 +249,22 @@ class ForumController extends GetxController {
 
     try {
       isPosting.value = true;
+      final url = "${AppConstants.baseUrl}/community/forum-posts/$postId/";
       final response = await http.patch(
-        Uri.parse("${AppConstants.baseUrl}/community/forum-posts/$postId/"),
+        Uri.parse(url),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode({"content": newContent.trim()}),
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.PATCH,
+        tag: 'Forum-UpdatePost',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -250,7 +294,7 @@ class ForumController extends GetxController {
         return true;
       }
     } catch (e) {
-      print("Update post error: $e");
+      // Handled
     } finally {
       isPosting.value = false;
     }
@@ -262,9 +306,18 @@ class ForumController extends GetxController {
     if (token == null) return false;
 
     try {
+      final url = "${AppConstants.baseUrl}/community/forum-posts/$postId/";
       final response = await http.delete(
-        Uri.parse("${AppConstants.baseUrl}/community/forum-posts/$postId/"),
+        Uri.parse(url),
         headers: {"Authorization": "Bearer $token"},
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.DELETE,
+        tag: 'Forum-DeletePost',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 204 || response.statusCode == 200) {
@@ -321,15 +374,22 @@ class ForumController extends GetxController {
 
     try {
       isLoadingComments.value = true;
+      final url = "${AppConstants.baseUrl}/community/forum-comment/$commentId/";
       final response = await http.patch(
-        Uri.parse(
-          "${AppConstants.baseUrl}/community/forum-comment/$commentId/",
-        ),
+        Uri.parse(url),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode({"content": newContent.trim()}),
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.PATCH,
+        tag: 'Forum-UpdateComment',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -361,7 +421,7 @@ class ForumController extends GetxController {
         return true;
       }
     } catch (e) {
-      print("Update comment error: $e");
+      // Handled
     } finally {
       isLoadingComments.value = false;
     }
@@ -376,11 +436,18 @@ class ForumController extends GetxController {
     if (token == null) return false;
 
     try {
+      final url = "${AppConstants.baseUrl}/community/forum-comment/$commentId/";
       final response = await http.delete(
-        Uri.parse(
-          "${AppConstants.baseUrl}/community/forum-comment/$commentId/",
-        ),
+        Uri.parse(url),
         headers: {"Authorization": "Bearer $token"},
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.DELETE,
+        tag: 'Forum-DeleteComment',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 204 || response.statusCode == 200) {
@@ -416,7 +483,7 @@ class ForumController extends GetxController {
         return true;
       }
     } catch (e) {
-      print("Delete comment error: $e");
+      // Handled
     }
     return false;
   }
@@ -447,13 +514,22 @@ class ForumController extends GetxController {
 
     try {
       isPosting.value = true;
+      final url = "${AppConstants.baseUrl}/community/forum-posts/";
       final response = await http.post(
-        Uri.parse("${AppConstants.baseUrl}/community/forum-posts/"),
+        Uri.parse(url),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode({"content": content.trim()}),
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Forum-CreatePost',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
       if (response.statusCode == 201) {
@@ -480,7 +556,6 @@ class ForumController extends GetxController {
         return true;
       }
     } catch (e) {
-      print("Create post error: $e");
       toastification.show(
         type: ToastificationType.error,
         style: ToastificationStyle.fillColored,

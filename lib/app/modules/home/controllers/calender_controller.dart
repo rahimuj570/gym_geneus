@@ -17,7 +17,9 @@ import 'package:kenzeno/app/res/colors/colors.dart';
 
 class GalleryController extends GetxController {
   // Services
-  final HomeService _homeService = Get.find<HomeService>();
+  HomeService get _homeService => Get.isRegistered<HomeService>()
+      ? Get.find<HomeService>()
+      : Get.put(HomeService());
 
   // Reactive State
   var isLoading = true.obs;
@@ -32,6 +34,7 @@ class GalleryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    print('📦 [GalleryController] Initialized. Fetching gallery dashboard and images...');
     fetchGalleryDashboard();
     fetchGalleryImages(); // Load current month
   }
@@ -40,18 +43,20 @@ class GalleryController extends GetxController {
   Future<void> fetchGalleryDashboard({int? month, int? year}) async {
     try {
       isLoading(true);
+      final m = month ?? DateTime.now().month;
+      final y = year ?? DateTime.now().year;
+      print('🔄 [GalleryController] Fetching dashboard for month: $m, year: $y');
 
       final response = await _homeService.fetchGalleryDashboard(
-        month: month ?? DateTime.now().month,
-        year: year ?? DateTime.now().year,
+        month: m,
+        year: y,
       );
 
       dashboardData.value = response;
-      currentMonth.value = DateTime(
-        year ?? DateTime.now().year,
-        month ?? DateTime.now().month,
-      );
+      currentMonth.value = DateTime(y, m);
+      print('✅ [GalleryController] Dashboard loaded. Total images: ${response.totalImages}, streak: ${response.consecutiveDaysStreak}');
     } catch (e) {
+      print('❌ [GalleryController] Error fetching dashboard: $e');
       toastification.show(
         type: ToastificationType.error,
         style: ToastificationStyle.fillColored,
@@ -118,12 +123,14 @@ class GalleryController extends GetxController {
 
       isUploading(true);
       final bytes = await pickedFile.readAsBytes();
+      print('🔄 [GalleryController] Uploading progress photo (${bytes.length} bytes)...');
 
       final success = await _homeService.uploadProgressPhoto(
         imageBytes: bytes, // ← just the raw bytes
       );
 
       if (success) {
+        print('✅ [GalleryController] Photo uploaded successfully.');
         toastification.show(
           type: ToastificationType.info,
           style: ToastificationStyle.fillColored,
@@ -144,11 +151,12 @@ class GalleryController extends GetxController {
         );
 
         await fetchGalleryDashboard();
+        await fetchGalleryImages();
       } else {
         throw Exception("Upload failed – server rejected");
       }
     } catch (e) {
-      print("Photo upload error: $e");
+      print("❌ [GalleryController] Photo upload error: $e");
       toastification.show(
         type: ToastificationType.error,
         style: ToastificationStyle.fillColored,
@@ -175,11 +183,14 @@ class GalleryController extends GetxController {
   Future<void> fetchGalleryImages() async {
     try {
       isLoading(true);
+      print('🔄 [GalleryController] Fetching all gallery images...');
       final images = await _homeService.fetchAllGalleryImages();
       // Sort newest first
       images.sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt));
       galleryImages.assignAll(images);
+      print('✅ [GalleryController] Loaded ${images.length} gallery images.');
     } catch (e) {
+      print('❌ [GalleryController] Error fetching gallery images: $e');
       toastification.show(
         type: ToastificationType.error,
         style: ToastificationStyle.fillColored,

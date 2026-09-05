@@ -18,19 +18,10 @@ class WorkoutService extends GetxService {
       queryParameters: difficulty != null ? {'difficulty': difficulty} : null,
     );
 
-    print("REQUEST URL: $uri");
-
     try {
-      final response = await ApiClient.get(uri);
-
-      // DEBUG: Print raw response
-      print("STATUS CODE: ${response.statusCode}");
-      print(
-        "RESPONSE BODY: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...",
-      );
+      final response = await ApiClient.get(uri, tag: 'Workout-List');
 
       if (response.statusCode == 200) {
-        // Check if body actually starts with JSON
         final body = response.body.trim();
         if (body.startsWith('[') || body.startsWith('{')) {
           final List data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -59,8 +50,7 @@ class WorkoutService extends GetxService {
       }
     } catch (e) {
       if (e is FormatException) {
-        print("JSON PARSE ERROR! Response was not JSON:");
-        print(e);
+        print("JSON PARSE ERROR! Response was not JSON: $e");
         throw Exception(
           "Invalid response from server (not JSON). Check your token!",
         );
@@ -73,8 +63,7 @@ class WorkoutService extends GetxService {
   Future<Workout> fetchWorkoutDetail(int workoutId) async {
     final url = Uri.parse("${AppConstants.baseUrl}/workouts/$workoutId/");
 
-    final response = await ApiClient.get(url);
-    print(response.body);
+    final response = await ApiClient.get(url, tag: 'Workout-Detail');
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(
         utf8.decode(response.bodyBytes),
@@ -98,13 +87,11 @@ class WorkoutService extends GetxService {
       if (userExerciseId != null) "user_exercise_id": userExerciseId,
     };
 
-    print("Tracking Progress → POST $url");
-    print("Payload: $payload");
-
-    final response = await ApiClient.post(url, body: jsonEncode(payload));
-
-    print("Track Progress Response: ${response.statusCode}");
-    print("Response Body: ${response.body}");
+    final response = await ApiClient.post(
+      url,
+      body: jsonEncode(payload),
+      tag: 'Workout-TrackProgress',
+    );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       // Success – optionally return parsed data

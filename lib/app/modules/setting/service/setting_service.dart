@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:get_storage/get_storage.dart';
@@ -22,12 +23,21 @@ class SettingService {
     final token = box.read('loginToken');
     if (token == null) throw Exception('Authentication required');
 
+    final url = '${AppConstants.baseUrl}/accounts/profile/';
     final response = await http.get(
-      Uri.parse('${AppConstants.baseUrl}/accounts/profile/'),
+      Uri.parse(url),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Setting-FetchProfile',
+      statusCode: response.statusCode,
+      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -57,9 +67,10 @@ class SettingService {
     final token = box.read('loginToken');
     if (token == null) throw Exception('Authentication required');
 
+    final url = '${AppConstants.baseUrl}/accounts/profile/update/';
     var request = http.MultipartRequest(
       'PATCH',
-      Uri.parse('${AppConstants.baseUrl}/accounts/profile/update/'),
+      Uri.parse(url),
     );
 
     request.headers["Authorization"] = "Bearer $token";
@@ -106,28 +117,23 @@ class SettingService {
       }
     }
 
-    print('🚀 [SettingService] Sending UPDATE PROFILE request to: ${AppConstants.baseUrl}/accounts/profile/update/');
-    print('📦 [SettingService] Request Fields: ${request.fields}');
-    if (request.files.isNotEmpty) {
-      print('🖼️ [SettingService] Request Files: ${request.files.map((f) => '${f.field}: ${f.filename}').toList()}');
-    }
-
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
     final responseBody = utf8.decode(response.bodyBytes);
 
-    print('📥 ==================== UPDATE PROFILE RESPONSE ====================');
-    print('📊 Status Code : ${response.statusCode}');
-    print('📄 Response Body: $responseBody');
-    print('====================================================================');
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.PATCH,
+      tag: 'Setting-UpdateProfile',
+      statusCode: response.statusCode,
+      responseBody: responseBody,
+    );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(responseBody);
-      print('✅ Parsed Profile JSON: $data');
       return ProfileModel.fromJson(data);
     } else {
       final error = _parseError(response);
-      print('❌ Update Profile Failed: $error');
       throw Exception(error ?? 'Failed to update profile');
     }
   }
@@ -173,6 +179,14 @@ class SettingService {
         },
       );
 
+      FlutterDebugLogger.printJsonResponse(
+        url: uri.toString(),
+        method: Method.GET,
+        tag: 'Setting-FetchFAQs',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
       if (response.statusCode == 200) {
         final List data = jsonDecode(utf8.decode(response.bodyBytes));
         return data.map((json) => FAQ.fromJson(json)).toList();
@@ -189,9 +203,18 @@ class SettingService {
     final token = box.read("loginToken");
     if (token == null) throw Exception("Login required");
 
+    final url = '${AppConstants.baseUrl}/utils/contact-options/';
     final response = await http.get(
-      Uri.parse('${AppConstants.baseUrl}/utils/contact-options/'),
+      Uri.parse(url),
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Setting-ContactOptions',
+      statusCode: response.statusCode,
+      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -207,9 +230,18 @@ class SettingService {
   Future<Map<String, dynamic>> fetchPrivacyPolicyContent() async {
     final token = GetStorage().read("loginToken");
 
+    final url = "${AppConstants.baseUrl}/utils/privacy-policy/";
     final response = await http.get(
-      Uri.parse("${AppConstants.baseUrl}/utils/privacy-policy/"),
+      Uri.parse(url),
       headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Setting-PrivacyPolicy',
+      statusCode: response.statusCode,
+      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -253,15 +285,25 @@ class SettingService {
       "confirm_password": confirmPassword,
     };
 
+    final url = "${AppConstants.baseUrl}/accounts/change-password/";
     try {
       final response = await http.post(
-        Uri.parse("${AppConstants.baseUrl}/accounts/change-password/"),
+        Uri.parse(url),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode(payload),
       );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Setting-ChangePassword',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 

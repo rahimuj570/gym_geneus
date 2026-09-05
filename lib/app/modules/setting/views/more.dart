@@ -221,7 +221,7 @@ class More extends StatelessWidget {
                         Icons.sports_rounded,
                         "Change Coach",
                         () => Get.to(
-                          () => CoachPage(),
+                          () => CoachPage(isFromSettings: true),
                           transition: Transition.rightToLeft,
                         ),
                       ),
