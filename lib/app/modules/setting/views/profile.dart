@@ -177,6 +177,7 @@ class MyProfileEditScreen extends StatelessWidget {
                       controller: controller.mobileController,
                       hintText: '+123 456 7890',
                     ),
+                    _buildGenderDropdown(),
                     _buildInputField(
                       label: 'Date of Birth',
                       controller: controller.dobController,
@@ -239,11 +240,14 @@ class MyProfileEditScreen extends StatelessWidget {
                                 fullName: controller.fullNameController.text.trim().isEmpty
                                     ? null
                                     : controller.fullNameController.text.trim(),
+                                phoneNumber: controller.mobileController.text.trim().isEmpty
+                                    ? null
+                                    : controller.mobileController.text.trim(),
                                 dateOfBirth: controller.dobController.text.trim().isEmpty
                                     ? null
                                     : controller.dobController.text.trim(),
                                 age: controller.effectiveAge,
-                                gender: profile?.gender?.toLowerCase(),
+                                gender: controller.selectedGender.value?.toLowerCase(),
                                 heightCm: double.tryParse(
                                   controller.heightController.text.trim(),
                                 ),
@@ -355,6 +359,86 @@ class MyProfileEditScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // Gender dropdown
+  Widget _buildGenderDropdown() {
+    final genderOptions = [
+      {'label': 'Male', 'value': 'male'},
+      {'label': 'Female', 'value': 'female'},
+      {'label': 'Other', 'value': 'other'},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 15.h),
+        Text(
+          'Gender',
+          style: AppTextStyles.poppinsRegular.copyWith(
+            color: AppColor.customPurple,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Obx(() {
+          final currentGender = controller.selectedGender.value;
+          final matchedValue = (currentGender != null &&
+                  genderOptions.any((g) => g['value'] == currentGender.toLowerCase()))
+              ? currentGender.toLowerCase()
+              : null;
+
+          return Container(
+            height: 40.h,
+            padding: EdgeInsets.symmetric(horizontal: 14.w),
+            decoration: BoxDecoration(
+              color: AppColor.white,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: AppColor.black111214),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: matchedValue,
+                isExpanded: true,
+                hint: Text(
+                  'Select Gender',
+                  style: TextStyle(
+                    color: AppColor.white30,
+                    fontSize: 14.sp,
+                    fontFamily: 'Montserrat',
+                  ),
+                ),
+                icon: Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColor.black232323,
+                  size: 20.sp,
+                ),
+                dropdownColor: Colors.white,
+                items: genderOptions.map((g) {
+                  return DropdownMenuItem<String>(
+                    value: g['value'],
+                    child: Text(
+                      g['label']!,
+                      style: TextStyle(
+                        color: AppColor.black232323,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    controller.selectedGender.value = val;
+                  }
+                },
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 

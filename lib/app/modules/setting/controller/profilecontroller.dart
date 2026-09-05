@@ -78,6 +78,7 @@ class ProfileController extends GetxController {
   final heightController = TextEditingController();
   final emailController = TextEditingController();
   final mobileController = TextEditingController();
+  var selectedGender = RxnString();
 
   void _updateEditingControllers() {
     final p = profile.value;
@@ -96,6 +97,12 @@ class ProfileController extends GetxController {
         p.heightCm != null ? p.heightCm!.toStringAsFixed(1) : '';
     emailController.text = p.email ?? '';
     mobileController.text = p.phoneNumber ?? '';
+
+    if (p.gender != null && p.gender!.isNotEmpty) {
+      selectedGender.value = p.gender!.toLowerCase();
+    } else {
+      selectedGender.value = null;
+    }
   }
 
   int get effectiveAge {
@@ -172,6 +179,7 @@ class ProfileController extends GetxController {
 
   Future<void> updateProfile({
     String? fullName,
+    String? phoneNumber,
     String? dateOfBirth,
     int? age,
     String? gender,
@@ -204,8 +212,18 @@ class ProfileController extends GetxController {
       // Use the picked image path from the BottomSheetController if available, otherwise use the passed avatar
       final String? finalAvatarPath = bottomSheetController.pickedImage.value?.path ?? avatar;
 
+      print('🔄 [ProfileController] Updating profile with:');
+      print('   -> Full Name: $fullName');
+      print('   -> Phone Number: $phoneNumber');
+      print('   -> DOB: $dateOfBirth (computed age: $targetAge)');
+      print('   -> Gender: $gender');
+      print('   -> Height: $heightCm cm');
+      print('   -> Weight: $weightKg kg');
+      print('   -> Avatar: $finalAvatarPath');
+
       final updatedProfile = await _service.updateProfile(
         fullName: fullName,
+        phoneNumber: phoneNumber,
         dateOfBirth: dateOfBirth,
         age: targetAge,
         gender: gender,
@@ -219,6 +237,8 @@ class ProfileController extends GetxController {
       profile.value = updatedProfile;
       _updateEditingControllers();
 
+      print('🎉 [ProfileController] Profile updated successfully! Updated profile model: ${updatedProfile.toJson()}');
+
       // Refetch articles if HomeController is registered
       if (Get.isRegistered<HomeController>()) {
         Get.find<HomeController>().fetchAllArticles();
@@ -229,6 +249,7 @@ class ProfileController extends GetxController {
 
       CustomSnackbar.showSuccess('Profile updated successfully!');
     } catch (e) {
+      print('❌ [ProfileController] Error updating profile: $e');
       CustomSnackbar.showError(
         e.toString().replaceAll('Exception: ', ''),
         title: 'Update Failed',

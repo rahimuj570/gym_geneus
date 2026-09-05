@@ -90,6 +90,8 @@ class ProfileModel {
   Map<String, dynamic> toJson() {
     return {
       if (fullName != null && fullName!.isNotEmpty) 'full_name': fullName,
+      if (phoneNumber != null && phoneNumber!.isNotEmpty)
+        'phone_number': phoneNumber,
       if (dateOfBirth != null && dateOfBirth!.isNotEmpty)
         'date_of_birth': dateOfBirth,
       if (gender != null) 'gender': gender,

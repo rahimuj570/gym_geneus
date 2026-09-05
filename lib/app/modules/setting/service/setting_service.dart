@@ -44,6 +44,7 @@ class SettingService {
   // PATCH: Update profile - only sends non-null fields
   Future<ProfileModel> updateProfile({
     String? fullName,
+    String? phoneNumber,
     String? dateOfBirth,
     int? age,
     String? gender,
@@ -65,6 +66,9 @@ class SettingService {
 
     if (fullName != null && fullName.trim().isNotEmpty) {
       request.fields['full_name'] = fullName.trim();
+    }
+    if (phoneNumber != null && phoneNumber.trim().isNotEmpty) {
+      request.fields['phone_number'] = phoneNumber.trim();
     }
     if (dateOfBirth != null && dateOfBirth.trim().isNotEmpty) {
       request.fields['date_of_birth'] = dateOfBirth.trim();
@@ -102,14 +106,28 @@ class SettingService {
       }
     }
 
+    print('🚀 [SettingService] Sending UPDATE PROFILE request to: ${AppConstants.baseUrl}/accounts/profile/update/');
+    print('📦 [SettingService] Request Fields: ${request.fields}');
+    if (request.files.isNotEmpty) {
+      print('🖼️ [SettingService] Request Files: ${request.files.map((f) => '${f.field}: ${f.filename}').toList()}');
+    }
+
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
+    final responseBody = utf8.decode(response.bodyBytes);
+
+    print('📥 ==================== UPDATE PROFILE RESPONSE ====================');
+    print('📊 Status Code : ${response.statusCode}');
+    print('📄 Response Body: $responseBody');
+    print('====================================================================');
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      final data = jsonDecode(responseBody);
+      print('✅ Parsed Profile JSON: $data');
       return ProfileModel.fromJson(data);
     } else {
       final error = _parseError(response);
+      print('❌ Update Profile Failed: $error');
       throw Exception(error ?? 'Failed to update profile');
     }
   }
