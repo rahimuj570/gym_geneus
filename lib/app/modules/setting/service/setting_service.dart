@@ -3,14 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_debug_logger/flutter_debug_logger.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/get_navigation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:kenzeno/app/services/api_client.dart';
 import '../../../constants/appconstants.dart';
 import '../model/faq_model.dart';
 import '../model/profile_model.dart';
+import '../model/notification_settings_model.dart';
 import 'package:toastification/toastification.dart';
 import 'package:kenzeno/app/res/fonts/textstyle.dart';
 import 'package:kenzeno/app/res/colors/colors.dart';
@@ -134,6 +133,8 @@ class SettingService {
       final errorBody = jsonDecode(utf8.decode(response.bodyBytes));
       if (errorBody is Map) {
         return errorBody['detail'] ??
+            errorBody['message'] ??
+            errorBody['error'] ??
             errorBody['full_name']?.first ??
             errorBody['date_of_birth']?.first ??
             errorBody['non_field_errors']?.first ??
@@ -142,6 +143,74 @@ class SettingService {
       return errorBody.toString();
     } catch (_) {
       return response.body.isNotEmpty ? response.body : null;
+    }
+  }
+
+  // DELETE: /api/accounts/delete-account/
+  Future<bool> deleteAccount() async {
+    final token = box.read('loginToken');
+    if (token == null) throw Exception('Authentication required');
+
+    final url = '${AppConstants.baseUrl}/accounts/delete-account/';
+
+    http.Response response;
+    try {
+      response = await http.delete(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.DELETE,
+      tag: 'Setting-DeleteAccount',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200 ||
+        response.statusCode == 204 ||
+        response.statusCode == 202) {
+      return true;
+    } else if (response.statusCode == 405) {
+      // Fallback to POST if server expects POST
+      try {
+        final postResponse = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        );
+
+        FlutterDebugLogger.printJsonResponse(
+          url: url,
+          method: Method.POST,
+          tag: 'Setting-DeleteAccount-Fallback',
+          statusCode: postResponse.statusCode,
+          responseBody: postResponse.body,
+        );
+
+        if (postResponse.statusCode == 200 ||
+            postResponse.statusCode == 204 ||
+            postResponse.statusCode == 202) {
+          return true;
+        }
+        final error = _parseError(postResponse);
+        throw Exception(error ?? 'Failed to delete account');
+      } catch (e) {
+        if (e is Exception) rethrow;
+        throw Exception('Failed to delete account');
+      }
+    } else {
+      final error = _parseError(response);
+      throw Exception(error ?? 'Failed to delete account');
     }
   }
 
@@ -184,7 +253,7 @@ class SettingService {
         throw Exception("Failed to load FAQs (${response.statusCode})");
       }
     } catch (e) {
-      print("FAQService Error: $e");
+      debugPrint("FAQService Error: $e");
       rethrow;
     }
   }
@@ -401,6 +470,91 @@ class SettingService {
         showProgressBar: true,
       );
       return null;
+    }
+  }
+
+  // GET: /api/utils/notification-settings/
+  Future<NotificationSettingsModel> fetchNotificationSettings() async {
+    final token = box.read('loginToken');
+    if (token == null) throw Exception('Authentication required');
+
+    final url = '${AppConstants.baseUrl}/utils/notification-settings/';
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Setting-FetchNotificationSettings',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      return NotificationSettingsModel.fromJson(data);
+    } else {
+      throw Exception('Failed to load notification settings');
+    }
+  }
+
+  // PATCH: /api/utils/notification-settings/
+  Future<NotificationSettingsModel> updateNotificationSettings({
+    bool? generalNotifications,
+    bool? sound,
+    bool? doNotDisturb,
+    bool? vibrate,
+    bool? lockScreen,
+  }) async {
+    final token = box.read('loginToken');
+    if (token == null) throw Exception('Authentication required');
+
+    final url = '${AppConstants.baseUrl}/utils/notification-settings/';
+    final body = <String, dynamic>{};
+    if (generalNotifications != null) {
+      body['general_notifications'] = generalNotifications;
+    }
+    if (sound != null) {
+      body['sound'] = sound;
+    }
+    if (doNotDisturb != null) {
+      body['do_not_disturb'] = doNotDisturb;
+    }
+    if (vibrate != null) {
+      body['vibrate'] = vibrate;
+    }
+    if (lockScreen != null) {
+      body['lock_screen'] = lockScreen;
+    }
+
+    final response = await http.patch(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.PATCH,
+      tag: 'Setting-UpdateNotificationSettings',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      return NotificationSettingsModel.fromJson(data);
+    } else {
+      throw Exception('Failed to update notification settings');
     }
   }
 }

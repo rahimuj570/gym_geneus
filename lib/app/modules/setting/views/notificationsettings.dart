@@ -1,8 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
@@ -10,8 +8,10 @@ import '../../../widgets/backbutton_widget.dart';
 import '../controller/notificationcontroller.dart';
 
 class NotificationsSettingsScreen extends StatelessWidget {
-  // Initialize the controller
-  final NotificationsController controller = Get.put(NotificationsController());
+  final NotificationsController controller =
+      Get.isRegistered<NotificationsController>()
+          ? Get.find<NotificationsController>()
+          : Get.put(NotificationsController());
 
   NotificationsSettingsScreen({super.key});
 
@@ -30,67 +30,79 @@ class NotificationsSettingsScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10.w),
-        child: Column(
-          children: [
-            // General Notification
-            Obx(
-              () => _buildSwitchTile(
-                title: "General Notification",
-                value: controller.generalNotification.value,
-                onChanged: controller.toggleGeneralNotification,
-              ),
-            ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColor.customPurple),
+          );
+        }
 
-            // Sound
-            Obx(
-              () => _buildSwitchTile(
-                title: "Sound",
-                value: controller.sound.value,
-                onChanged: controller.toggleSound,
-              ),
-            ),
+        return RefreshIndicator(
+          onRefresh: controller.fetchNotificationSettings,
+          color: AppColor.customPurple,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10.w),
+            child: Column(
+              children: [
+                // General Notification
+                Obx(
+                  () => _buildSwitchTile(
+                    title: "General Notification",
+                    value: controller.generalNotification.value,
+                    onChanged: controller.toggleGeneralNotification,
+                  ),
+                ),
 
-            // Don't Disturb Mode
-            Obx(
-              () => _buildSwitchTile(
-                title: "Don't Disturb Mode",
-                value: controller.doNotDisturbMode.value,
-                onChanged: controller.toggleDoNotDisturbMode,
-              ),
-            ),
+                // Sound
+                Obx(
+                  () => _buildSwitchTile(
+                    title: "Sound",
+                    value: controller.sound.value,
+                    onChanged: controller.toggleSound,
+                  ),
+                ),
 
-            // Vibrate
-            Obx(
-              () => _buildSwitchTile(
-                title: "Vibrate",
-                value: controller.vibrate.value,
-                onChanged: controller.toggleVibrate,
-              ),
-            ),
+                // Don't Disturb Mode
+                Obx(
+                  () => _buildSwitchTile(
+                    title: "Don't Disturb Mode",
+                    value: controller.doNotDisturbMode.value,
+                    onChanged: controller.toggleDoNotDisturbMode,
+                  ),
+                ),
 
-            // Lock Screen
-            Obx(
-              () => _buildSwitchTile(
-                title: "Lock Screen",
-                value: controller.lockScreen.value,
-                onChanged: controller.toggleLockScreen,
-              ),
-            ),
+                // Vibrate
+                Obx(
+                  () => _buildSwitchTile(
+                    title: "Vibrate",
+                    value: controller.vibrate.value,
+                    onChanged: controller.toggleVibrate,
+                  ),
+                ),
 
-            // Reminders
-            Obx(
-              () => _buildSwitchTile(
-                title: "Reminders",
-                value: controller.reminders.value,
-                onChanged: controller.toggleReminders,
-              ),
+                // Lock Screen
+                Obx(
+                  () => _buildSwitchTile(
+                    title: "Lock Screen",
+                    value: controller.lockScreen.value,
+                    onChanged: controller.toggleLockScreen,
+                  ),
+                ),
+
+                // Reminders
+                Obx(
+                  () => _buildSwitchTile(
+                    title: "Reminders",
+                    value: controller.reminders.value,
+                    onChanged: controller.toggleReminders,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      // Assuming a bottom navigation bar is present based on the image
+          ),
+        );
+      }),
     );
   }
 
