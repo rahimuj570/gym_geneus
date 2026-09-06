@@ -19,6 +19,7 @@ class ForgotPassword extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     controller.frompage.value = "forgotpass";
+    controller.forgotEmailController.clear();
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColor
@@ -89,7 +90,7 @@ class ForgotPassword extends StatelessWidget {
 
                   // Email or Phone Number Input
                   InputTextWidget(
-                    controller: controller.emailController,
+                    controller: controller.forgotEmailController,
                     hintText: 'Enter your Email or phone number',
                     onChanged: (value) {},
                     leading:
@@ -108,7 +109,7 @@ class ForgotPassword extends StatelessWidget {
                   Obx(
                     () => CustomButton(
                       onPress: () async {
-                        final emailText = controller.emailController.text.trim();
+                        final emailText = controller.forgotEmailController.text.trim();
                         final success = await controller.resetPasswordRequest(emailText);
                         if (success) {
                           Get.to(

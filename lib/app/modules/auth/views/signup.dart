@@ -6,8 +6,6 @@ import 'package:get/get.dart';
 import 'package:kenzeno/app/modules/auth/controllers/authcontroller.dart';
 // Assuming Login page is in the same directory structure
 import 'package:kenzeno/app/modules/auth/views/login.dart';
-// Assuming a placeholder for the main app navigation after successful signup
-import 'package:kenzeno/app/modules/home/views/navbar.dart';
 // Placeholder for the main app navigation after successful signup
 import '../../../res/assets/asset.dart';
 import '../../../res/colors/colors.dart';
@@ -22,6 +20,7 @@ class Signup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     controller.frompage.value = "signup";
+    controller.clearSignupFields();
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColor.white,
@@ -87,7 +86,7 @@ class Signup extends StatelessWidget {
                   ),
                   SizedBox(height: 6.h),
                   InputTextWidget(
-                    controller: controller.namecontroller,
+                    controller: controller.signupNameController,
                     hintText: 'Enter your full name',
                     onChanged: (value) {},
                     leading: true,
@@ -114,7 +113,7 @@ class Signup extends StatelessWidget {
                   ),
                   SizedBox(height: 6.h),
                   InputTextWidget(
-                    controller: controller.emailController,
+                    controller: controller.signupEmailController,
                     hintText: 'Email',
                     onChanged: (value) {},
                     leading: true,
@@ -140,7 +139,7 @@ class Signup extends StatelessWidget {
                   ),
                   SizedBox(height: 6.h),
                   InputTextWidget(
-                    controller: controller.passwordController,
+                    controller: controller.signupPasswordController,
                     hintText: 'Enter your password',
                     onChanged: (value) {},
                     leading: true,
@@ -166,7 +165,7 @@ class Signup extends StatelessWidget {
                   ),
                   SizedBox(height: 6.h),
                   InputTextWidget(
-                    controller: controller.confirmpasswordController,
+                    controller: controller.signupConfirmPasswordController,
                     hintText: 'Re-enter your password',
                     onChanged: (value) {},
                     obscureText: true,
@@ -227,6 +226,7 @@ class Signup extends StatelessWidget {
                             ),
                             recognizer: TapGestureRecognizer()
                               ..onTap = () {
+                                controller.clearAllControllers(preserveRemembered: true);
                                 // Navigate back to the Login screen
                                 Get.off(
                                   () => Login(),

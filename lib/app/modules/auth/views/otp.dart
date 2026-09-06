@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
-import 'package:kenzeno/app/modules/auth/views/passconfirmation.dart';
 import 'package:kenzeno/app/widgets/backbutton_widget.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -11,15 +10,35 @@ import '../../../res/fonts/textstyle.dart';
 import '../../../widgets/custom_button.dart';
 import '../controllers/authcontroller.dart';
 
-class OtpVerification extends StatelessWidget {
+class OtpVerification extends StatefulWidget {
   final String email;
   final String fromPage;
 
-  OtpVerification({Key? key, required this.email, required this.fromPage})
-    : super(key: key);
+  const OtpVerification({
+    super.key,
+    required this.email,
+    required this.fromPage,
+  });
 
-  final TextEditingController otpController = TextEditingController();
+  @override
+  State<OtpVerification> createState() => _OtpVerificationState();
+}
+
+class _OtpVerificationState extends State<OtpVerification> {
+  late final TextEditingController otpController;
   final Authcontroller controller = Get.find<Authcontroller>();
+
+  @override
+  void initState() {
+    super.initState();
+    otpController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    otpController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +87,7 @@ class OtpVerification extends StatelessWidget {
 
                         // Subtitle
                         Text(
-                          'Enter the verification code we just sent to:$email',
+                          'Enter the verification code we just sent to: ${widget.email}',
                           style: AppTextStyles.workSansRegular.copyWith(
                             fontSize: 14.sp,
                             color: AppColor.white.withOpacity(0.8),

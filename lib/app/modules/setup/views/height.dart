@@ -18,13 +18,13 @@ class HeightInputPage extends StatelessWidget {
 
   final SetupController controller = Get.find<SetupController>();
 
-  final VerticalScrollController scrollController = VerticalScrollController(
-    mode: VerticalScrollMode.centimeters,
-    topValue: 220,
-    bottomValue: 140,
+  late final VerticalScrollController scrollController =
+      VerticalScrollController(
+    topValue: 250,
+    bottomValue: 100,
     height: 300,
     itemGap: 20,
-    initialValue: 170,
+    initialValue: controller.height.value > 0 ? controller.height.value : 175,
   );
 
   @override
@@ -92,38 +92,40 @@ class HeightInputPage extends StatelessWidget {
                     // Scroll Picker
                     Expanded(
                       flex: 5,
-                      child: VerticalScrollPicker(
-                        nKey: const ValueKey('height_picker'),
-                        controller: scrollController,
-                        height: 0.6.sh,
-                        width: double.infinity,
-                        bottomValue: scrollController.bottomValue,
-                        topValue: scrollController.topValue,
-                        interval: () => 1.0,
-                        lineGap: 20,
-                        style: VerticalScrollPickerStyle(
-                          backgroundItemColor: AppColor.white.withOpacity(0.3),
-                          foregroundItemColor: AppColor.customPurple,
+                      child: Obx(
+                        () => VerticalScrollPicker(
+                          nKey: ValueKey('height_picker_${controller.heightUnit.value}'),
+                          controller: scrollController,
+                          height: 0.6.sh,
+                          width: double.infinity,
+                          bottomValue: scrollController.bottomValue,
+                          topValue: scrollController.topValue,
+                          interval: () => 5.0,
+                          lineGap: 20,
+                          style: VerticalScrollPickerStyle(
+                            backgroundItemColor: AppColor.white.withOpacity(0.3),
+                            foregroundItemColor: AppColor.customPurple,
+                          ),
+                          onChanged: (value) => controller.setHeight(value),
+                          onPickedValueFormat: (value) {
+                            if (controller.heightUnit.value == 'feet') {
+                              final inches = value / 2.54;
+                              final feet = inches ~/ 12;
+                              final rem = (inches % 12).round();
+                              return "$feet'$rem\"";
+                            }
+                            return "${value.toStringAsFixed(0)} cm";
+                          },
+                          onScaleValueFormat: (value) {
+                            if (controller.heightUnit.value == 'feet') {
+                              final inches = value / 2.54;
+                              final feet = inches ~/ 12;
+                              final rem = (inches % 12).round();
+                              return "$feet'$rem\"";
+                            }
+                            return "${value.toInt()} cm";
+                          },
                         ),
-                        onChanged: (value) => controller.setHeight(value),
-                        onPickedValueFormat: (value) {
-                          if (controller.heightUnit.value == 'feet') {
-                            final inches = value / 2.54;
-                            final feet = inches ~/ 12;
-                            final rem = (inches % 12).round();
-                            return "$feet'$rem\"";
-                          }
-                          return "${value.toStringAsFixed(0)} cm";
-                        },
-                        onScaleValueFormat: (value) {
-                          if (controller.heightUnit.value == 'feet') {
-                            final inches = value / 2.54;
-                            final feet = inches ~/ 12;
-                            final rem = (inches % 12).round();
-                            return "$feet'$rem\"";
-                          }
-                          return "${value.toInt()} cm";
-                        },
                       ),
                     ),
 
@@ -198,15 +200,15 @@ class HeightInputPage extends StatelessWidget {
           children: [
             Expanded(
               child: _unitButton('Centimeters', isCm, () {
-                scrollController.switchToCentimeters();
                 controller.heightUnit.value = 'cm';
+                scrollController.refresh();
               }),
             ),
             Expanded(
               child: _unitButton('Feet', !isCm, () {
-                scrollController.switchToFeetInches();
                 controller.heightUnit.value = 'feet';
                 controller.updateFeetInchesDisplay();
+                scrollController.refresh();
               }),
             ),
           ],

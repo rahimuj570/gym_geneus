@@ -30,10 +30,24 @@ class Authcontroller extends GetxController {
   RxBool ischecked = false.obs;
   final storage = GetStorage();
   final RxString frompage = "".obs;
-  final namecontroller = TextEditingController();
+
+  // Login controllers
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final confirmpasswordController = TextEditingController();
+
+  // Dedicated Signup controllers (completely isolated from Login)
+  final signupNameController = TextEditingController();
+  final signupEmailController = TextEditingController();
+  final signupPasswordController = TextEditingController();
+  final signupConfirmPasswordController = TextEditingController();
+
+  // Dedicated Forgot Password controller
+  final forgotEmailController = TextEditingController();
+
+  // Legacy aliases
+  TextEditingController get namecontroller => signupNameController;
+  TextEditingController get confirmpasswordController => signupConfirmPasswordController;
+
   final TextEditingController countryController = TextEditingController();
   final isLoading = false.obs;
   final isLoadingsignup = false.obs;
@@ -65,35 +79,76 @@ class Authcontroller extends GetxController {
   }
 
   void _validateInputs({required bool isLogin}) {
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
-    final confirmPass = confirmpasswordController.text.trim();
-    final firstname = namecontroller.text.trim();
-
-    if (email.isEmpty) {
-      throw 'Email cannot be empty';
-    }
-    if (!GetUtils.isEmail(email)) {
-      throw 'Please enter a valid email address';
-    }
-    if (password.isEmpty) {
-      throw 'Password cannot be empty';
-    }
     if (isLogin) {
-      return;
-    }
-    if (firstname.isEmpty) {
-      throw 'Name cannot be empty';
-    }
+      final email = emailController.text.trim();
+      final password = passwordController.text.trim();
 
-    if (confirmPass.isEmpty) {
-      throw 'Confirm password cannot be empty';
+      if (email.isEmpty) {
+        throw 'Email cannot be empty';
+      }
+      if (!GetUtils.isEmail(email)) {
+        throw 'Please enter a valid email address';
+      }
+      if (password.isEmpty) {
+        throw 'Password cannot be empty';
+      }
+      return;
+    } else {
+      final name = signupNameController.text.trim();
+      final email = signupEmailController.text.trim();
+      final password = signupPasswordController.text.trim();
+      final confirmPass = signupConfirmPasswordController.text.trim();
+
+      if (name.isEmpty) {
+        throw 'Name cannot be empty';
+      }
+      if (email.isEmpty) {
+        throw 'Email cannot be empty';
+      }
+      if (!GetUtils.isEmail(email)) {
+        throw 'Please enter a valid email address';
+      }
+      if (password.isEmpty) {
+        throw 'Password cannot be empty';
+      }
+      if (confirmPass.isEmpty) {
+        throw 'Confirm password cannot be empty';
+      }
+      if (password != confirmPass) {
+        throw 'Passwords do not match';
+      }
+      if (password.length < 6) {
+        throw 'Password must be at least 6 characters';
+      }
     }
-    if (password != confirmPass) {
-      throw 'Passwords do not match';
-    }
-    if (password.length < 6) {
-      throw 'Password must be at least 6 characters';
+  }
+
+  void clearSignupFields() {
+    signupNameController.clear();
+    signupEmailController.clear();
+    signupPasswordController.clear();
+    signupConfirmPasswordController.clear();
+  }
+
+  void clearLoginFields() {
+    emailController.clear();
+    passwordController.clear();
+  }
+
+  void clearAllControllers({bool preserveRemembered = false}) {
+    clearSignupFields();
+    forgotEmailController.clear();
+    countryController.clear();
+    registeredEmail = '';
+    frompage.value = '';
+
+    if (preserveRemembered && ischecked.value) {
+      final savedEmail = storage.read<String>('email');
+      final savedPassword = storage.read<String>('password');
+      emailController.text = savedEmail ?? '';
+      passwordController.text = savedPassword ?? '';
+    } else {
+      clearLoginFields();
     }
   }
 
@@ -154,6 +209,8 @@ class Authcontroller extends GetxController {
         if (data['access'] != null) {
           box.write('loginToken', data['access']);
         }
+
+        clearAllControllers(preserveRemembered: false);
 
         toastification.show(
           type: ToastificationType.success,
@@ -249,7 +306,10 @@ class Authcontroller extends GetxController {
           storage.remove('email');
           storage.remove('password');
         }
+
+        clearAllControllers(preserveRemembered: false);
         CustomSnackbar.showSuccess('Login successful! Welcome back.');
+
         try {
           await initFCM().timeout(
             const Duration(seconds: 5),
@@ -285,20 +345,23 @@ class Authcontroller extends GetxController {
       isLoadingsignup.value = true;
 
       final newuser = SignupModel(
-        name: namecontroller.text.trim(),
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+        name: signupNameController.text.trim(),
+        email: signupEmailController.text.trim(),
+        password: signupPasswordController.text.trim(),
       );
 
       final result = await _authProvider.register(newuser);
 
       if (result == "success") {
         registeredEmail = newuser.email;
+        final verifyEmail = signupEmailController.text.trim();
+        clearSignupFields();
+
         CustomSnackbar.showSuccess(
           'Registration successful! Please verify your OTP code.',
         );
         Get.offAll(
-          OtpVerification(email: emailController.text.trim(), fromPage: "signup"),
+          OtpVerification(email: verifyEmail, fromPage: "signup"),
           transition: Transition.rightToLeft,
         );
       } else {
@@ -327,10 +390,11 @@ class Authcontroller extends GetxController {
 
       if (frompage.value == "signup") {
         final result = await _authProvider.activateAccount(
-          registeredEmail.isNotEmpty ? registeredEmail : emailController.text.trim(),
+          registeredEmail.isNotEmpty ? registeredEmail : signupEmailController.text.trim(),
           trimmedOtp,
         );
         if (result == "success") {
+          clearAllControllers(preserveRemembered: false);
           CustomSnackbar.showSuccess('Account activated successfully!');
           Get.offAll(Setup(), transition: Transition.rightToLeft);
         } else {
@@ -338,7 +402,7 @@ class Authcontroller extends GetxController {
         }
       } else {
         final result = await _authProvider.otpActivate(
-          registeredEmail.isNotEmpty ? registeredEmail : emailController.text.trim(),
+          registeredEmail.isNotEmpty ? registeredEmail : forgotEmailController.text.trim(),
           trimmedOtp,
         );
         if (result == "success") {
@@ -357,7 +421,9 @@ class Authcontroller extends GetxController {
 
   Future<void> resendOtp() async {
     if (registeredEmail.isEmpty) {
-      registeredEmail = emailController.text.trim();
+      registeredEmail = signupEmailController.text.trim().isNotEmpty
+          ? signupEmailController.text.trim()
+          : forgotEmailController.text.trim();
     }
     if (registeredEmail.isEmpty) {
       CustomSnackbar.showError('Email is required to resend OTP');
@@ -423,6 +489,7 @@ class Authcontroller extends GetxController {
         passwordController.text.trim(),
       );
       if (success) {
+        clearAllControllers(preserveRemembered: false);
         CustomSnackbar.showSuccess('Password reset successfully!');
       } else {
         CustomSnackbar.showError('Password reset failed. Please try again.');
@@ -452,11 +519,24 @@ class Authcontroller extends GetxController {
     storage.remove('loginToken');
     storage.remove('refreshToken');
     storage.remove('actionToken');
+    storage.remove('email');
+    storage.remove('password');
+    ischecked.value = false;
 
-    if (!ischecked.value) {
-      emailController.clear();
-      passwordController.clear();
-    }
+    clearAllControllers(preserveRemembered: false);
+  }
+
+  @override
+  void onClose() {
+    emailController.dispose();
+    passwordController.dispose();
+    signupNameController.dispose();
+    signupEmailController.dispose();
+    signupPasswordController.dispose();
+    signupConfirmPasswordController.dispose();
+    forgotEmailController.dispose();
+    countryController.dispose();
+    super.onClose();
   }
 }
 

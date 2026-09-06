@@ -11,8 +11,6 @@ import '../../../res/fonts/textstyle.dart';
 import '../../../widgets/backbutton_widget.dart';
 import '../controllers/nutri_controller.dart';
 import 'package:toastification/toastification.dart';
-import 'package:kenzeno/app/res/fonts/textstyle.dart';
-import 'package:kenzeno/app/res/colors/colors.dart';
 
 class MealIdeasPage extends StatelessWidget {
   NutritionController get controller => Get.isRegistered<NutritionController>()
@@ -21,45 +19,43 @@ class MealIdeasPage extends StatelessWidget {
 
   MealIdeasPage({super.key});
 
-  Future<void> _scanAndAnalyze() async {
-    // Prevent multiple scans
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickAndAnalyze({bool fromGallery = false}) async {
     if (controller.isAnalyzing.value) return;
 
-    final picker = ImagePicker();
-    final XFile? photo = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 90,
-    );
-
-    if (photo == null) {
-      toastification.show(
-        type: ToastificationType.warning,
-        style: ToastificationStyle.fillColored,
-        primaryColor: Colors.orange,
-        foregroundColor: Colors.white,
-        title: Text(
-          "Cancelled",
-          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
-        ),
-        description: Text(
-          "No photo taken",
-          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
-        ),
-        alignment: Alignment.topRight,
-        autoCloseDuration: const Duration(seconds: 4),
-        borderRadius: BorderRadius.circular(12),
-        showProgressBar: true,
-      );
-      return;
-    }
-
-    final imageFile = File(photo.path);
-
     try {
+      final XFile? photo = await _picker.pickImage(
+        source: fromGallery ? ImageSource.gallery : ImageSource.camera,
+        maxWidth: 1600,
+        imageQuality: 85,
+      );
+
+      if (photo == null) {
+        toastification.show(
+          type: ToastificationType.warning,
+          style: ToastificationStyle.fillColored,
+          primaryColor: Colors.orange,
+          foregroundColor: Colors.white,
+          title: Text(
+            "Cancelled",
+            style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+          ),
+          description: Text(
+            fromGallery ? "No photo selected" : "No photo taken",
+            style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+          ),
+          alignment: Alignment.topRight,
+          autoCloseDuration: const Duration(seconds: 4),
+          borderRadius: BorderRadius.circular(12),
+          showProgressBar: true,
+        );
+        return;
+      }
+
+      final imageFile = File(photo.path);
       await controller.analyzeMeal(imageFile);
-      // Dialog auto-closes because isAnalyzing becomes false in finally block
     } catch (e) {
-      // Only close if dialog is still open (in case of error)
       if (Get.isDialogOpen == true) Get.back();
       toastification.show(
         type: ToastificationType.error,
@@ -67,11 +63,11 @@ class MealIdeasPage extends StatelessWidget {
         primaryColor: Colors.red,
         foregroundColor: Colors.white,
         title: Text(
-          "Analysis Failed",
+          "Error",
           style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
         ),
         description: Text(
-          e.toString(),
+          "Could not capture image: $e",
           style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
         ),
         alignment: Alignment.topRight,
@@ -80,6 +76,71 @@ class MealIdeasPage extends StatelessWidget {
         showProgressBar: true,
       );
     }
+  }
+
+  void _showPhotoSourceSheet() {
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.all(24.w),
+        decoration: const BoxDecoration(
+          color: AppColor.gray1F2937,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Select Meal Photo",
+              style: AppTextStyles.poppinsBold.copyWith(
+                fontSize: 20.sp,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _photoOption(Icons.camera_alt, "Camera", () {
+                  Get.back();
+                  _pickAndAnalyze(fromGallery: false);
+                }),
+                _photoOption(Icons.photo_library, "Gallery", () {
+                  Get.back();
+                  _pickAndAnalyze(fromGallery: true);
+                }),
+              ],
+            ),
+            SizedBox(height: 16.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _photoOption(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: AppColor.customPurple.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 30.sp, color: AppColor.customPurple),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            label,
+            style: AppTextStyles.poppinsSemiBold.copyWith(
+              color: Colors.white,
+              fontSize: 13.sp,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -216,7 +277,7 @@ class MealIdeasPage extends StatelessWidget {
 
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: GestureDetector(
-        onTap: _scanAndAnalyze,
+        onTap: _showPhotoSourceSheet,
         child: Container(
           width: 90.r,
           height: 90.r,

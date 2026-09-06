@@ -2,15 +2,10 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-// === Enum for mode ===
-enum VerticalScrollMode { centimeters, feetInches }
-
-// === Controller with modified scroll logic ===
+// === Controller for height scale picker ===
 class VerticalScrollController extends ChangeNotifier {
-  VerticalScrollMode _mode;
-
-  double topValue;
-  double bottomValue;
+  final double topValue;
+  final double bottomValue;
   final double height;
   final double itemGap;
 
@@ -20,19 +15,14 @@ class VerticalScrollController extends ChangeNotifier {
   double _currentValue;
 
   VerticalScrollController({
-    required VerticalScrollMode mode,
-    required this.topValue,
-    required this.bottomValue,
-    required this.height,
+    this.topValue = 250,
+    this.bottomValue = 100,
+    this.height = 300,
     this.itemGap = 20,
     double? initialValue,
-  }) : _mode = mode,
-       _currentValue = initialValue ?? bottomValue {
-    _scrollOffset =
-        (topValue - _currentValue) * itemGap; // Reversed: higher value at top
+  })  : _currentValue = (initialValue ?? 175).clamp(bottomValue, topValue) {
+    _scrollOffset = (topValue - _currentValue) * itemGap;
   }
-
-  VerticalScrollMode get mode => _mode;
 
   int get itemHeight => itemGap.round();
 
@@ -42,30 +32,30 @@ class VerticalScrollController extends ChangeNotifier {
 
   double get pickValuePrecise {
     double centerOffset = _scrollOffset / itemHeight;
-    double value = topValue - centerOffset; // Reversed: subtract from topValue
+    double value = topValue - centerOffset;
     return value.clamp(bottomValue, topValue);
   }
 
-  int get pickedValue {
-    final precise = pickValuePrecise;
-    return dragDirection == AxisDirection.up
-        ? precise.ceil()
-        : precise.floor(); // Reversed rounding
-  }
+  int get pickedValue => pickValuePrecise.round();
 
   double get currentValue => _currentValue;
 
+  void refresh() {
+    notifyListeners();
+  }
+
   set currentValue(double val) {
     _currentValue = val.clamp(bottomValue, topValue);
-    _scrollOffset = (topValue - _currentValue) * itemHeight; // Reversed
+    _scrollOffset = (topValue - _currentValue) * itemHeight;
     notifyListeners();
   }
 
   void scroll(double pixels) {
-    final prev = _scrollOffset;
-    _scrollOffset = pixels.clamp(0, totalLineCount * itemHeight).toDouble();
-    if (_scrollOffset != prev) {
-      _currentValue = topValue - (_scrollOffset / itemHeight); // Reversed
+    final double maxScroll = totalLineCount * itemHeight.toDouble();
+    final double clamped = pixels.clamp(0.0, maxScroll);
+    if ((clamped - _scrollOffset).abs() > 0.0001) {
+      _scrollOffset = clamped;
+      _currentValue = topValue - (_scrollOffset / itemHeight);
       notifyListeners();
     }
   }
@@ -73,41 +63,9 @@ class VerticalScrollController extends ChangeNotifier {
   void updateDirection(AxisDirection direction) {
     dragDirection = direction;
   }
-
-  void switchToCentimeters() {
-    if (_mode == VerticalScrollMode.centimeters) return;
-    _currentValue = inchesToCentimeters(_currentValue);
-    _mode = VerticalScrollMode.centimeters;
-    _updateBoundsForMode();
-    _scrollOffset = (topValue - _currentValue) * itemHeight; // Reversed
-    notifyListeners();
-  }
-
-  void switchToFeetInches() {
-    if (_mode == VerticalScrollMode.feetInches) return;
-    _currentValue = centimetersToInches(_currentValue);
-    _mode = VerticalScrollMode.feetInches;
-    _updateBoundsForMode();
-    _scrollOffset = (topValue - _currentValue) * itemHeight; // Reversed
-    notifyListeners();
-  }
-
-  void _updateBoundsForMode() {
-    if (_mode == VerticalScrollMode.centimeters) {
-      bottomValue = 0;
-      topValue = 300;
-    } else {
-      bottomValue = 0;
-      topValue = 118;
-    }
-  }
-
-  static double centimetersToInches(double cm) => cm / 2.54;
-
-  static double inchesToCentimeters(double inch) => inch * 2.54;
 }
 
-// === Style class unchanged ===
+// === Style class ===
 class VerticalScrollPickerStyle {
   final Color? backgroundItemColor;
   final Color? foregroundItemColor;
@@ -119,12 +77,12 @@ class VerticalScrollPickerStyle {
 
   static const VerticalScrollPickerStyle defaultStyle =
       VerticalScrollPickerStyle(
-        backgroundItemColor: Color(0xFF9A9A9A),
-        foregroundItemColor: Color(0xFF444444),
-      );
+    backgroundItemColor: Color(0xFF9A9A9A),
+    foregroundItemColor: Color(0xFF444444),
+  );
 }
 
-// === VerticalScrollPicker with modified drag logic ===
+// === VerticalScrollPicker Widget ===
 class VerticalScrollPicker extends StatefulWidget {
   final double? height;
   final double? width;
@@ -165,53 +123,29 @@ class _VerticalScrollPickerState extends State<VerticalScrollPicker> {
   void initState() {
     super.initState();
     controller = widget.controller;
-    controller.addListener(_controllerListener);
   }
 
   @override
   void didUpdateWidget(covariant VerticalScrollPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_controllerListener);
       controller = widget.controller;
-      controller.addListener(_controllerListener);
     }
   }
 
-  @override
-  void dispose() {
-    controller.removeListener(_controllerListener);
-    super.dispose();
-  }
-
-  void _controllerListener() {
-    // setState(() {});
-    // widget.onChanged?.call(controller.currentValue);
-  }
-
   void _onDragVertically(DragUpdateDetails details) {
-    bool isUp = details.delta.dy < 0;
+    final double delta = details.primaryDelta ?? details.delta.dy;
+    bool isUp = delta < 0;
     controller.updateDirection(isUp ? AxisDirection.up : AxisDirection.down);
 
-    if (!isUp && controller.pickValuePrecise < controller.bottomValue)
-      return; // Reversed bounds check
-    if (isUp && controller.pickValuePrecise >= controller.topValue)
-      return; // Reversed bounds check
-
-    // Invert the delta to reverse scroll direction
-    double invertedDelta =
-        details.primaryDelta!; // Changed from -details.primaryDelta!
-
-    double newScrollOffset = controller.scrollOffset - invertedDelta;
+    double newScrollOffset = controller.scrollOffset - delta;
     controller.scroll(newScrollOffset);
+    widget.onChanged?.call(controller.currentValue);
   }
 
   void _onDragEnd(DragEndDetails details) {
     final double precise = controller.pickValuePrecise;
-    final int snappedValue = controller.dragDirection == AxisDirection.up
-        ? precise
-              .ceil() // Reversed: ceil for up
-        : precise.floor(); // Reversed: floor for down
+    final int snappedValue = precise.round();
     controller.currentValue = snappedValue.toDouble();
     widget.onChanged?.call(controller.currentValue);
   }
@@ -222,6 +156,7 @@ class _VerticalScrollPickerState extends State<VerticalScrollPicker> {
       height: widget.height,
       width: widget.width,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: _onDragEnd,
         onVerticalDragUpdate: _onDragVertically,
         child: _RangeSlide(
@@ -237,7 +172,7 @@ class _VerticalScrollPickerState extends State<VerticalScrollPicker> {
   }
 }
 
-// === _RangeSlide with modified painter ===
+// === _RangeSlide ===
 class _RangeSlide extends StatefulWidget {
   final String Function(double value)? onPickedValueFormat;
   final String Function(double value)? onScaleValueFormat;
@@ -337,22 +272,16 @@ class ScalePainter extends CustomPainter {
       if (y < 0 || y > size.height) continue;
 
       bool isInterval =
-          ((topValue - i.toDouble()) % interval()) ==
-          0; // Reversed: calculate from topValue
+          ((topValue - i.toDouble()) % interval()) == 0;
 
       if (isInterval) {
-        canvas.drawLine(
-          Offset(offsetLeft * 2, y),
-          Offset(offsetLeft * 2, y),
-          paint,
-        );
         canvas.drawLine(
           Offset(offsetLeft * 2, y),
           Offset(offsetLeft * 4, y),
           paint,
         );
 
-        final labelValue = topValue - i; // Reversed: subtract from topValue
+        final labelValue = topValue - i;
         if (labelValue.toInt() != pickedValue) {
           _drawText(
             canvas,
@@ -396,10 +325,15 @@ class ScalePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant ScalePainter oldDelegate) =>
+      oldDelegate.scrollOffset != scrollOffset ||
+      oldDelegate.pickedValue != pickedValue ||
+      oldDelegate.topValue != topValue ||
+      oldDelegate.bottomValue != bottomValue ||
+      oldDelegate.color != color;
 }
 
-// === MarkPainter unchanged ===
+// === MarkPainter ===
 class MarkPainter extends CustomPainter {
   final double Function() interval;
   final int pickedValue;
@@ -503,10 +437,13 @@ class MarkPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant MarkPainter oldDelegate) =>
+      oldDelegate.pickedValue != pickedValue ||
+      oldDelegate.color != color ||
+      oldDelegate.offsetLeft != offsetLeft;
 }
 
-// === Helper functions unchanged ===
+// === Helper functions ===
 String inchToFeetInch(double inchValue) {
   int feet = inchValue ~/ 12;
   int inch = (inchValue % 12).round();
@@ -517,3 +454,4 @@ String inchToFeet(double inchValue) {
   int feet = inchValue ~/ 12;
   return "$feet ft";
 }
+

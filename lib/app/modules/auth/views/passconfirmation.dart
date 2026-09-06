@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:kenzeno/app/modules/auth/controllers/authcontroller.dart';
 import 'package:kenzeno/app/modules/auth/views/login.dart'; // Corrected import to match app structure
 import '../../../res/assets/asset.dart'; // Assuming ImageAssets are here
 import '../../../res/colors/colors.dart';
@@ -82,6 +83,9 @@ class Passconfirmation extends StatelessWidget {
                 // Button: Next (Go to Login)
                 CustomButton(
                   onPress: () async {
+                    if (Get.isRegistered<Authcontroller>()) {
+                      Get.find<Authcontroller>().clearAllControllers(preserveRemembered: true);
+                    }
                     // Navigate back to the Login screen
                     Get.offAll(
                       () => Login(),

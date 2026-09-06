@@ -15,6 +15,7 @@ import 'firebase_options.dart';
 
 import 'app/modules/auth/controllers/authcontroller.dart';
 import 'app/modules/home/controllers/calender_controller.dart';
+import 'app/modules/home/controllers/homecontroller.dart';
 import 'app/modules/home/controllers/navcontroller.dart';
 import 'app/modules/home/service/home_service.dart';
 import 'app/modules/nutrition/controllers/nutri_controller.dart';
@@ -104,6 +105,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => SubscriptionController(), fenix: true);
     Get.lazyPut(() => SetupService(), fenix: true);
     Get.lazyPut(() => HomeService(), fenix: true);
+    Get.lazyPut(() => HomeController(), fenix: true);
     Get.lazyPut(() => SearchController(), fenix: true);
     Get.lazyPut(() => SearchController2(), fenix: true);
     Get.lazyPut(() => OnboardController(), fenix: true);

@@ -96,7 +96,6 @@ class GalleryController extends GetxController {
         source: fromGallery ? ImageSource.gallery : ImageSource.camera,
         maxWidth: 1600,
         imageQuality: 85,
-        preferredCameraDevice: CameraDevice.rear,
       );
 
       if (pickedFile == null) {
