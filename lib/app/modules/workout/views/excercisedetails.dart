@@ -1,11 +1,9 @@
 // exercise_details_screen.dart
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:kenzeno/app/modules/workout/views/workoutdetails.dart';
 import 'package:video_player/video_player.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
@@ -15,8 +13,6 @@ import '../controllers/workoutcontroller.dart';
 import '../model/workoutmodel.dart';
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
 import 'package:toastification/toastification.dart';
-import 'package:kenzeno/app/res/fonts/textstyle.dart';
-import 'package:kenzeno/app/res/colors/colors.dart';
 
 class ExerciseDetailsScreen extends StatefulWidget {
   final workutid;
@@ -479,7 +475,29 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen>
   }
 
   Future<void> _playVideo(UserExercise exercise) async {
-    if (isVideoLoading.value || exercise.videoUrl == null) return;
+    if (isVideoLoading.value) return;
+
+    if (exercise.videoUrl == null || exercise.videoUrl!.trim().isEmpty) {
+      toastification.show(
+        type: ToastificationType.warning,
+        style: ToastificationStyle.fillColored,
+        primaryColor: Colors.orange,
+        foregroundColor: Colors.white,
+        title: Text(
+          "Video Unavailable",
+          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+        ),
+        description: Text(
+          "Video is not available for this exercise",
+          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+        ),
+        alignment: Alignment.topRight,
+        autoCloseDuration: const Duration(seconds: 4),
+        borderRadius: BorderRadius.circular(12),
+        showProgressBar: true,
+      );
+      return;
+    }
 
     isVideoLoading.value = true;
 
