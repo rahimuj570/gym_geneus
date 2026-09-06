@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:kenzeno/app/modules/home/views/progressgallery.dart';
 import 'package:kenzeno/app/modules/nutrition/controllers/nutri_controller.dart';
 import 'package:kenzeno/app/modules/nutrition/views/mealoverall.dart';
+import 'package:kenzeno/app/modules/setting/views/gallery_password_setting.dart';
 
 import '../../../res/assets/asset.dart';
 import '../../../res/colors/colors.dart';
@@ -18,8 +20,6 @@ import '../../nutrition/model/nutrion_home.dart';
 import '../../setting/views/profile.dart';
 import '../controllers/calender_controller.dart';
 import 'package:toastification/toastification.dart';
-import 'package:kenzeno/app/res/fonts/textstyle.dart';
-import 'package:kenzeno/app/res/colors/colors.dart';
 
 import 'notification.dart';
 
@@ -435,6 +435,8 @@ class FitTrackerView extends StatelessWidget {
 
   void _showPasswordDialog(BuildContext context) {
     final ctrl = TextEditingController();
+    final storage = GetStorage();
+
     Get.defaultDialog(
       backgroundColor: AppColor.gray1F2937,
       title: '',
@@ -444,7 +446,7 @@ class FitTrackerView extends StatelessWidget {
           const Icon(Icons.lock, color: AppColor.customPurple, size: 60),
           const SizedBox(height: 10),
           Text(
-            'Enter Password',
+            'Enter Gallery PIN',
             style: AppTextStyles.poppinsBold.copyWith(
               color: AppColor.white,
               fontSize: 18.sp,
@@ -457,8 +459,9 @@ class FitTrackerView extends StatelessWidget {
               controller: ctrl,
               obscureText: true,
               keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Password',
+                hintText: 'Enter 4-digit PIN',
                 hintStyle: TextStyle(color: AppColor.gray9CA3AF),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColor.gray9CA3AF),
@@ -475,9 +478,16 @@ class FitTrackerView extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColor.customPurple,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 10.h),
             ),
             onPressed: () {
-              if (ctrl.text == '1234') {
+              final entered = ctrl.text.trim();
+              final currentSavedPin = storage.read<String>('gallery_password') ?? '1234';
+
+              if (entered == currentSavedPin) {
                 Get.back();
                 Get.to(
                   () => ProgressGalleryPage(),
@@ -496,7 +506,7 @@ class FitTrackerView extends StatelessWidget {
                     ),
                   ),
                   description: Text(
-                    'Incorrect password',
+                    'Incorrect PIN/password',
                     style: AppTextStyles.poppinsRegular.copyWith(
                       color: Colors.white,
                     ),
@@ -511,6 +521,24 @@ class FitTrackerView extends StatelessWidget {
             child: Text(
               'Submit',
               style: AppTextStyles.poppinsBold.copyWith(color: AppColor.white),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          GestureDetector(
+            onTap: () {
+              Get.back();
+              Get.to(
+                () => const GalleryPasswordSettingsScreen(),
+                transition: Transition.rightToLeft,
+              );
+            },
+            child: Text(
+              'Change PIN in Settings',
+              style: AppTextStyles.poppinsRegular.copyWith(
+                color: AppColor.customPurple,
+                fontSize: 12.sp,
+                decoration: TextDecoration.underline,
+              ),
             ),
           ),
         ],

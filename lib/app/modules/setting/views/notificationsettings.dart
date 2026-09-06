@@ -10,8 +10,8 @@ import '../controller/notificationcontroller.dart';
 class NotificationsSettingsScreen extends StatelessWidget {
   final NotificationsController controller =
       Get.isRegistered<NotificationsController>()
-          ? Get.find<NotificationsController>()
-          : Get.put(NotificationsController());
+      ? Get.find<NotificationsController>()
+      : Get.put(NotificationsController());
 
   NotificationsSettingsScreen({super.key});
 
@@ -91,13 +91,13 @@ class NotificationsSettingsScreen extends StatelessWidget {
                 ),
 
                 // Reminders
-                Obx(
-                  () => _buildSwitchTile(
-                    title: "Reminders",
-                    value: controller.reminders.value,
-                    onChanged: controller.toggleReminders,
-                  ),
-                ),
+                // Obx(
+                //   () => _buildSwitchTile(
+                //     title: "Reminders",
+                //     value: controller.reminders.value,
+                //     onChanged: controller.toggleReminders,
+                //   ),
+                // ),
               ],
             ),
           ),

@@ -1,5 +1,3 @@
-// more.dart
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -11,19 +9,15 @@ import 'package:kenzeno/app/modules/setting/views/helpandfaq.dart';
 import 'package:kenzeno/app/modules/setting/views/privacy_policy.dart';
 import 'package:kenzeno/app/modules/setting/views/profile.dart';
 import 'package:kenzeno/app/modules/setting/views/settings.dart';
-
+import 'package:kenzeno/app/modules/setting/views/gallery_password_setting.dart';
 import 'package:kenzeno/app/res/assets/asset.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
 import '../../subscription/views/subscription.dart';
 import '../../setup/views/coach.dart';
-import '../controller/profilecontroller.dart'; // ← ADD THIS
-import '../model/profile_model.dart';
+import '../controller/profilecontroller.dart';
 import 'package:toastification/toastification.dart';
-import 'package:kenzeno/app/res/fonts/textstyle.dart';
-import 'package:kenzeno/app/res/colors/colors.dart';
 import 'package:kenzeno/app/modules/auth/controllers/authcontroller.dart';
-// ← ADD THIS
 
 class More extends StatelessWidget {
   More({super.key});
@@ -238,6 +232,14 @@ class More extends StatelessWidget {
                         "Privacy Policy",
                         () => Get.to(
                           () => PrivacyPolicyScreen(),
+                          transition: Transition.rightToLeft,
+                        ),
+                      ),
+                      _buildMenuItem(
+                        Icons.lock_outline_rounded,
+                        "Gallery Password",
+                        () => Get.to(
+                          () => const GalleryPasswordSettingsScreen(),
                           transition: Transition.rightToLeft,
                         ),
                       ),

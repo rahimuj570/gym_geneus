@@ -9,6 +9,7 @@ import 'package:kenzeno/app/modules/auth/views/login.dart';
 import 'package:kenzeno/app/modules/setting/service/setting_service.dart';
 import 'package:kenzeno/app/modules/setting/views/notificationsettings.dart';
 import 'package:kenzeno/app/modules/setting/views/passwordsettting.dart';
+import 'package:kenzeno/app/modules/setting/views/gallery_password_setting.dart';
 import 'package:kenzeno/app/widgets/backbutton_widget.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
@@ -57,6 +58,18 @@ class SettingsScreen extends StatelessWidget {
               onTap: () {
                 Get.to(
                   PasswordSettingsScreen(),
+                  transition: Transition.rightToLeft,
+                );
+              },
+            ),
+            SizedBox(height: 10.h),
+            _buildSettingTile(
+              context,
+              title: "Gallery PIN / Password",
+              svgPath: ImageAssets.svg36,
+              onTap: () {
+                Get.to(
+                  () => const GalleryPasswordSettingsScreen(),
                   transition: Transition.rightToLeft,
                 );
               },
