@@ -14,15 +14,30 @@ import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
 import '../models/trackprogress.dart';
 
-class ProgressTrackingScreen extends StatelessWidget {
+class ProgressTrackingScreen extends StatefulWidget {
   const ProgressTrackingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.isRegistered<HomeController>()
+  State<ProgressTrackingScreen> createState() => _ProgressTrackingScreenState();
+}
+
+class _ProgressTrackingScreenState extends State<ProgressTrackingScreen> {
+  late final HomeController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.isRegistered<HomeController>()
         ? Get.find<HomeController>()
         : Get.put(HomeController());
+    final now = DateTime.now();
+    controller.selectedDate.value = now;
+    final formattedDate = DateFormat('yyyy-MM-dd').format(now);
+    controller.loadProgress(date: formattedDate);
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColor.black111214,
       appBar: _buildAppBar(),

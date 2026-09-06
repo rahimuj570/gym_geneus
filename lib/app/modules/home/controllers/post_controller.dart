@@ -12,7 +12,6 @@ import '../models/post_modeel.dart';
 import '../../../res/colors/colors.dart';
 import 'package:toastification/toastification.dart';
 import 'package:kenzeno/app/res/fonts/textstyle.dart';
-import 'package:kenzeno/app/res/colors/colors.dart';
 
 class ForumController extends GetxController {
   final box = GetStorage();
@@ -154,6 +153,21 @@ class ForumController extends GetxController {
     final token = box.read("loginToken");
     if (token == null) return;
 
+    final index = posts.indexWhere((p) => p.id == id);
+    if (index == -1) return;
+
+    final originalPost = posts[index];
+    final bool newIsLiked = !originalPost.isLiked;
+    final int newLikes = newIsLiked
+        ? originalPost.likes + 1
+        : (originalPost.likes > 0 ? originalPost.likes - 1 : 0);
+
+    // 1. Instantly update the post in the reactive GetX list
+    posts[index] = originalPost.copyWith(
+      isLiked: newIsLiked,
+      likes: newLikes,
+    );
+
     try {
       final url = "${AppConstants.baseUrl}/community/forum-post-like/";
       final response = await http.post(
@@ -173,8 +187,20 @@ class ForumController extends GetxController {
         responseBody: response.body,
       );
 
-      refreshPosts();
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        // Revert on non-success status code
+        final revertIndex = posts.indexWhere((p) => p.id == id);
+        if (revertIndex != -1) {
+          posts[revertIndex] = originalPost;
+        }
+        throw Exception("Failed to update like");
+      }
     } catch (e) {
+      // Revert on exception
+      final revertIndex = posts.indexWhere((p) => p.id == id);
+      if (revertIndex != -1) {
+        posts[revertIndex] = originalPost;
+      }
       toastification.show(
         type: ToastificationType.error,
         style: ToastificationStyle.fillColored,
@@ -185,7 +211,7 @@ class ForumController extends GetxController {
           style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
         ),
         description: Text(
-          "Check your connection",
+          "Could not update like. Please check your connection.",
           style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
         ),
         alignment: Alignment.topRight,

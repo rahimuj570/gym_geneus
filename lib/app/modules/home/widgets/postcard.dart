@@ -1,5 +1,3 @@
-// lib/app/modules/community/widgets/postcard.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -7,10 +5,8 @@ import 'package:get/get.dart';
 import 'package:kenzeno/app/res/assets/asset.dart';
 import 'package:kenzeno/app/res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
-
 import '../controllers/post_controller.dart';
 import 'package:toastification/toastification.dart';
-import 'package:kenzeno/app/res/fonts/textstyle.dart';
 
 class PostCard extends StatefulWidget {
   final String avatarUrl;
@@ -43,8 +39,36 @@ class PostCard extends StatefulWidget {
   State<PostCard> createState() => _PostCardState();
 }
 
-class _PostCardState extends State<PostCard> {
+class _PostCardState extends State<PostCard>
+    with SingleTickerProviderStateMixin {
   late String currentContent = widget.content;
+  late AnimationController _likeAnimController;
+  late Animation<double> _likeScaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _likeAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _likeScaleAnimation = Tween<double>(begin: 1.0, end: 1.35).animate(
+      CurvedAnimation(parent: _likeAnimController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _likeAnimController.dispose();
+    super.dispose();
+  }
+
+  void _onLikeTapped() {
+    _likeAnimController
+        .forward()
+        .then((_) => _likeAnimController.reverse());
+    widget.onFavoriteTap?.call();
+  }
 
   void _showEditModal() {
     final controller = TextEditingController(text: currentContent);
@@ -848,11 +872,11 @@ class _PostCardState extends State<PostCard> {
           Row(
             children: [
               GestureDetector(
-                onTap: widget.onFavoriteTap,
+                onTap: _onLikeTapped,
                 child: Row(
                   children: [
-                    AnimatedSwitcher(
-                      duration: Duration(milliseconds: 300),
+                    ScaleTransition(
+                      scale: _likeScaleAnimation,
                       child: SvgPicture.asset(
                         ImageAssets.svg33,
                         height: 15.h,

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:intl/intl.dart';
 import 'package:kenzeno/app/modules/home/models/leaderboard_model.dart';
 
 import '../../../constants/appconstants.dart';
@@ -252,9 +253,12 @@ class HomeService extends GetxService {
     final token = GetStorage().read("loginToken");
     if (token == null) throw Exception("Login required");
 
+    final todayFormatted = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final queryDate = (date != null && date.trim().isNotEmpty) ? date.trim() : todayFormatted;
+
     final uri = Uri.parse(
       "${AppConstants.baseUrl}/workouts/daily-progress/",
-    ).replace(queryParameters: date != null ? {'date': date} : null);
+    ).replace(queryParameters: {'date': queryDate});
 
     final response = await http.get(
       uri,

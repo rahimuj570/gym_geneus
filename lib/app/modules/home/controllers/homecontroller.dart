@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:kenzeno/app/modules/home/models/trackprogress.dart';
 import 'package:kenzeno/app/res/assets/asset.dart';
 
@@ -11,7 +12,6 @@ import '../models/workout_model.dart';
 import '../service/home_service.dart';
 import 'package:toastification/toastification.dart';
 import 'package:kenzeno/app/res/fonts/textstyle.dart';
-import 'package:kenzeno/app/res/colors/colors.dart';
 
 class HomeController extends GetxController {
   final HomeService _service = Get.put(HomeService());
@@ -42,7 +42,8 @@ class HomeController extends GetxController {
     fetchAllArticles();
     fetchWorkoutVideos();
     fetchActivities();
-    loadProgress();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    loadProgress(date: today);
     fetchRecommendedWorkouts();
     super.onInit();
   }
@@ -51,7 +52,9 @@ class HomeController extends GetxController {
   Future<void> loadProgress({String? date}) async {
     try {
       isProgressLoading(true);
-      final result = await _service.fetchDailyProgress(date: date);
+      final formattedDate =
+          date ?? DateFormat('yyyy-MM-dd').format(selectedDate.value);
+      final result = await _service.fetchDailyProgress(date: formattedDate);
       progress.value = result;
     } catch (e) {
       toastification.show(
@@ -90,8 +93,7 @@ class HomeController extends GetxController {
   // Date selection — now updates progress correctly
   void selectDate(DateTime date) {
     selectedDate.value = date;
-    final formatted =
-        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final formatted = DateFormat('yyyy-MM-dd').format(date);
     loadProgress(date: formatted);
   }
 
