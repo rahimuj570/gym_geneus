@@ -3,12 +3,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../res/colors/colors.dart';
-
 import '../controllers/post_controller.dart';
 import '../widgets/postcard.dart';
 import 'package:toastification/toastification.dart';
 import 'package:kenzeno/app/res/fonts/textstyle.dart';
-import 'package:kenzeno/app/res/colors/colors.dart';
+import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
 
 class DiscussionForumPage extends StatelessWidget {
   DiscussionForumPage({super.key});
@@ -19,6 +18,9 @@ class DiscussionForumPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ForumController());
+    final profileController = Get.isRegistered<ProfileController>()
+        ? Get.find<ProfileController>()
+        : Get.put(ProfileController());
 
     // Fixed Post Creation Box — exactly the same as yours
     final Widget postInputBar = Container(
@@ -37,13 +39,27 @@ class DiscussionForumPage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22.r,
-            backgroundImage: const NetworkImage(
-              "https://randomuser.me/api/portraits/men/86.jpg",
-            ),
-            backgroundColor: AppColor.gray9CA3AF,
-          ),
+          Obx(() {
+            final avatar = profileController.profile.value.avatar;
+            final fullName = profileController.profile.value.fullName ?? 'User';
+
+            final ImageProvider imageProvider;
+            if (avatar != null && avatar.trim().isNotEmpty) {
+              imageProvider = avatar.startsWith('http')
+                  ? NetworkImage(avatar)
+                  : AssetImage(avatar) as ImageProvider;
+            } else {
+              imageProvider = NetworkImage(
+                "https://ui-avatars.com/api/?name=${Uri.encodeComponent(fullName)}&background=6B46C1&color=fff",
+              );
+            }
+
+            return CircleAvatar(
+              radius: 22.r,
+              backgroundImage: imageProvider,
+              backgroundColor: AppColor.gray9CA3AF,
+            );
+          }),
           SizedBox(width: 12.w),
           Expanded(
             child: TextField(
