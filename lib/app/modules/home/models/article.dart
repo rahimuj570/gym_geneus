@@ -24,7 +24,7 @@ class Article {
       id: json['id'] as int,
       title: json['title'] as String,
       content: json['content'] as String,
-      mediaUrl: json['media_url'] as String?, // nullable
+      mediaUrl: json['image'] as String?, // nullable
       category: json['category'] as String,
       createdBy: json['created_by'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),

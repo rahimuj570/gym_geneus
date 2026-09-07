@@ -219,6 +219,7 @@ class ImageAssets {
   static const String homeimg_11 = 'assets/images/home/img_11.png';
 
   static const String fb = 'assets/images/profile/fb.png';
+  static const String challengePic = 'assets/images/challenge_pic.jpg';
 
   static const String obsecure = 'assets/icons/obsecure.svg';
 

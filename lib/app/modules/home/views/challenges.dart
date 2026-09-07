@@ -7,6 +7,7 @@ import 'package:kenzeno/app/modules/workout/views/workoutdetails.dart';
 import 'package:kenzeno/app/modules/workout/model/workoutmodel.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
+import '../../../res/assets/asset.dart';
 import '../../setting/widgets/trainnigstep.dart';
 
 class ChallengesPage extends StatefulWidget {
@@ -91,7 +92,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                   return TrainingCardWidget(
                     title: challenge.name,
                     subtitle: challenge.description,
-                    imagePath: '',
+                    imagePath: ImageAssets.challengePic,
                     type: 'article',
                     isVideo: false,
                     duration: '${challenge.estimatedDuration} min',

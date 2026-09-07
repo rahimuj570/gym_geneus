@@ -157,7 +157,7 @@ class TrainingCardWidget extends StatelessWidget {
             ),
             image: DecorationImage(
               image: imagePath.isEmpty
-                  ? const AssetImage(ImageAssets.img_3) as ImageProvider
+                  ? const AssetImage(ImageAssets.challengePic) as ImageProvider
                   : (imagePath.startsWith('http')
                         ? NetworkImage(imagePath)
                         : AssetImage(imagePath) as ImageProvider),
