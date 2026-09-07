@@ -72,7 +72,7 @@ class SearchController2 extends GetxController
     required int id,
   }) async {
     // 1. Optimistically toggle state immediately
-    _applyFavoriteToggle(contentType: contentType, id: id);
+    applyFavoriteToggleLocally(contentType: contentType, id: id);
 
     try {
       final success = await _homeService.toggleFavorite(
@@ -82,16 +82,19 @@ class SearchController2 extends GetxController
 
       // 2. If API fails, revert the state back
       if (!success) {
-        _applyFavoriteToggle(contentType: contentType, id: id);
+        applyFavoriteToggleLocally(contentType: contentType, id: id);
       }
     } catch (e) {
       print("Toggle favorite error: $e");
       // Revert state back on exception
-      _applyFavoriteToggle(contentType: contentType, id: id);
+      applyFavoriteToggleLocally(contentType: contentType, id: id);
     }
   }
 
-  void _applyFavoriteToggle({required String contentType, required int id}) {
+  void applyFavoriteToggleLocally({
+    required String contentType,
+    required int id,
+  }) {
     if (contentType == 'article') {
       final index = articleResults.indexWhere((a) => a.id == id);
       if (index != -1) {

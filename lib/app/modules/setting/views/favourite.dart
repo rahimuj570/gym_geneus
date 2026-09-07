@@ -9,6 +9,8 @@ import 'package:kenzeno/app/widgets/backbutton_widget.dart';
 import '../../../constants/appconstants.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
+import '../../home/views/articledetails.dart';
+import '../../workout/controllers/workoutcontroller.dart';
 import '../controller/favouritecontroller.dart';
 import '../widgets/trainnigstep.dart';
 
@@ -117,19 +119,37 @@ class Favourite extends StatelessWidget {
                     title: obj.title,
                     duration: obj.isArticle
                         ? "Read time · 5 min"
-                        : (obj.estimatedDuration ?? "Unknown duration"),
+                        : (obj.estimatedDuration ?? "45 Minutes"),
                     calories: obj.isArticle
                         ? "Article"
-                        : (obj.estimatedCalories ?? "Unknown calories"),
+                        : (obj.estimatedCalories ?? "300 Kcal"),
                     exercises: obj.isArticle
                         ? (obj.category?.toUpperCase() ?? "FITNESS")
                         : "${obj.exerciseCount ?? 0} Exercises",
                     imagePath: imageUrl,
-                    isVideo: !obj.isArticle,
-                    type: obj.isArticle ? 'Article' : 'Video',
+                    isVideo: false,
+                    type: obj.isArticle ? 'Article' : 'Workout',
                     subtitle: obj.isArticle
                         ? _safePreview(obj.content)
                         : (obj.description ?? "No description"),
+                    isFavorite: true,
+                    showFavorite: true,
+                    onFavoriteToggle: () => controller.removeFavorite(item),
+                    onTap: () {
+                      if (obj.isArticle) {
+                        Get.to(
+                          () => const ArticleDetailPage(),
+                          arguments: obj.id,
+                          transition: Transition.rightToLeft,
+                        );
+                      } else {
+                        final workoutController =
+                            Get.isRegistered<WorkoutController>()
+                                ? Get.find<WorkoutController>()
+                                : Get.put(WorkoutController());
+                        workoutController.loadWorkoutDetail(obj.id);
+                      }
+                    },
                   );
                 },
               );

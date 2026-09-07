@@ -36,7 +36,7 @@ class WorkoutController extends GetxController {
   }
 
   Future<void> toggleFavorite(int workoutId) async {
-    _applyLocalFavoriteToggle(workoutId);
+    applyLocalFavoriteToggle(workoutId);
 
     try {
       final success = await _homeService.toggleFavorite(
@@ -45,14 +45,14 @@ class WorkoutController extends GetxController {
       );
 
       if (!success) {
-        _applyLocalFavoriteToggle(workoutId);
+        applyLocalFavoriteToggle(workoutId);
       }
     } catch (e) {
-      _applyLocalFavoriteToggle(workoutId);
+      applyLocalFavoriteToggle(workoutId);
     }
   }
 
-  void _applyLocalFavoriteToggle(int workoutId) {
+  void applyLocalFavoriteToggle(int workoutId) {
     workoutsByDifficulty.forEach((difficulty, list) {
       final index = list.indexWhere((w) => w.id == workoutId);
       if (index != -1) {

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
@@ -7,10 +6,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:kenzeno/app/constants/appconstants.dart';
 
+import 'package:kenzeno/app/modules/home/controllers/homecontroller.dart';
+import 'package:kenzeno/app/modules/home/controllers/searchcontroller.dart';
+import 'package:kenzeno/app/modules/home/service/home_service.dart';
+import 'package:kenzeno/app/modules/workout/controllers/workoutcontroller.dart';
 import '../model/favourite_model.dart';
 import 'package:toastification/toastification.dart';
 import 'package:kenzeno/app/res/fonts/textstyle.dart';
-import 'package:kenzeno/app/res/colors/colors.dart';
 
 class FavouriteController extends GetxController {
   final box = GetStorage();
@@ -96,6 +98,77 @@ class FavouriteController extends GetxController {
       print(e);
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> removeFavorite(FavoriteItem item) async {
+    final index = favorites.indexOf(item);
+    if (index == -1) return;
+
+    // 1. Optimistically remove from list immediately
+    favorites.removeAt(index);
+    favorites.refresh();
+
+    // 2. Sync state in other active controllers
+    _syncOtherControllers(item.type, item.object.id);
+
+    try {
+      final homeService = Get.isRegistered<HomeService>()
+          ? Get.find<HomeService>()
+          : Get.put(HomeService());
+
+      final success = await homeService.toggleFavorite(
+        contentType: item.type,
+        objectId: item.object.id,
+      );
+
+      if (!success) {
+        // Revert on failure
+        favorites.insert(index, item);
+        favorites.refresh();
+        _syncOtherControllers(item.type, item.object.id);
+        toastification.show(
+          type: ToastificationType.error,
+          style: ToastificationStyle.fillColored,
+          primaryColor: Colors.red,
+          foregroundColor: Colors.white,
+          title: Text(
+            "Error",
+            style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+          ),
+          description: Text(
+            "Failed to remove from favorites",
+            style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+          ),
+          alignment: Alignment.topRight,
+          autoCloseDuration: const Duration(seconds: 3),
+          borderRadius: BorderRadius.circular(12),
+          showProgressBar: true,
+        );
+      }
+    } catch (e) {
+      // Revert on exception
+      favorites.insert(index, item);
+      favorites.refresh();
+      _syncOtherControllers(item.type, item.object.id);
+    }
+  }
+
+  void _syncOtherControllers(String type, int id) {
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().applyFavoriteToggleLocally(
+        contentType: type,
+        id: id,
+      );
+    }
+    if (Get.isRegistered<SearchController2>()) {
+      Get.find<SearchController2>().applyFavoriteToggleLocally(
+        contentType: type,
+        id: id,
+      );
+    }
+    if (type == 'userworkout' && Get.isRegistered<WorkoutController>()) {
+      Get.find<WorkoutController>().applyLocalFavoriteToggle(id);
     }
   }
 

@@ -459,7 +459,7 @@ class HomeController extends GetxController {
     required int id,
   }) async {
     // 1. Optimistically toggle state immediately before API completes
-    _applyFavoriteToggle(contentType: contentType, id: id);
+    applyFavoriteToggleLocally(contentType: contentType, id: id);
 
     try {
       final success = await _service.toggleFavorite(
@@ -469,18 +469,21 @@ class HomeController extends GetxController {
 
       // 2. If API fails, revert the state back and show error notification
       if (!success) {
-        _applyFavoriteToggle(contentType: contentType, id: id);
+        applyFavoriteToggleLocally(contentType: contentType, id: id);
         _showFavoriteErrorToast();
       }
     } catch (e) {
       print("Toggle favorite error: $e");
       // Revert state back on exception
-      _applyFavoriteToggle(contentType: contentType, id: id);
+      applyFavoriteToggleLocally(contentType: contentType, id: id);
       _showFavoriteErrorToast();
     }
   }
 
-  void _applyFavoriteToggle({required String contentType, required int id}) {
+  void applyFavoriteToggleLocally({
+    required String contentType,
+    required int id,
+  }) {
     if (contentType == 'article') {
       final index = articles.indexWhere((a) => a.id == id);
       if (index != -1) {
