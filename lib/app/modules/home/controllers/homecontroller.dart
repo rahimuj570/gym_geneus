@@ -11,6 +11,7 @@ import '../models/challenge_model.dart';
 import '../models/workout_model.dart';
 import '../service/home_service.dart';
 import 'package:toastification/toastification.dart';
+import 'package:kenzeno/app/res/colors/colors.dart';
 import 'package:kenzeno/app/res/fonts/textstyle.dart';
 
 class HomeController extends GetxController {
@@ -41,6 +42,11 @@ class HomeController extends GetxController {
   var dailyWorkoutSession = Rxn<Workout>();
   var dailyChallenge = Rxn<Challenge>();
   RxBool isLoadingHomeOverview = false.obs;
+
+  // ACTIVE GAMIFICATION CHALLENGE STATE
+  var activeChallenge = Rxn<Challenge>();
+  var isStartingChallenge = false.obs;
+  var isClaimingReward = false.obs;
 
   @override
   void onInit() {
@@ -258,6 +264,164 @@ class HomeController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Start Challenge (POST) and fetch complete details + user_progress (GET)
+  Future<Challenge?> startChallengeAndLoad(int challengeId) async {
+    try {
+      isStartingChallenge.value = true;
+      // 1. Try to start the challenge
+      try {
+        await _service.startChallenge(challengeId);
+      } catch (e) {
+        // If already started or active, backend may return a note, continue to fetch
+        print("Note on starting challenge: $e");
+      }
+
+      // 2. Fetch latest challenge progress & detail
+      final challenge = await _service.fetchChallengeDetail(challengeId);
+      activeChallenge.value = challenge;
+      return challenge;
+    } catch (e) {
+      rethrow;
+    } finally {
+      isStartingChallenge.value = false;
+    }
+  }
+
+  /// Check progress of the challenge by calling GET /api/gamification/challenges/{id}/
+  Future<void> refreshActiveChallenge(int challengeId) async {
+    try {
+      final challenge = await _service.fetchChallengeDetail(challengeId);
+      activeChallenge.value = challenge;
+
+      final progress = challenge.userProgress;
+      if (progress != null && progress.isCompleted && !progress.pointsClaimed) {
+        // Auto-claim reward if challenge is completed
+        await claimChallengeReward(
+          progressId: progress.id,
+          points: challenge.completionPoints,
+        );
+      }
+    } catch (e) {
+      print('Error refreshing challenge progress: $e');
+    }
+  }
+
+  /// Complete Exercise in Challenge: POST /api/gamification/challenges/complete-exercise/
+  Future<bool> completeChallengeExercise({
+    required int challengeId,
+    required int exerciseIndex,
+  }) async {
+    try {
+      Get.dialog(
+        const Center(
+          child: CircularProgressIndicator(color: AppColor.customPurple),
+        ),
+        barrierDismissible: false,
+      );
+
+      await _service.completeChallengeExercise(
+        challengeId: challengeId,
+        exerciseIndex: exerciseIndex,
+      );
+
+      Get.back(); // dismiss loading dialog
+
+      toastification.show(
+        type: ToastificationType.success,
+        style: ToastificationStyle.fillColored,
+        primaryColor: AppColor.green16A34A,
+        foregroundColor: Colors.white,
+        title: Text(
+          "Exercise Completed!",
+          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+        ),
+        description: Text(
+          "Great job! Exercise has been marked as complete.",
+          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+        ),
+        alignment: Alignment.topRight,
+        autoCloseDuration: const Duration(seconds: 3),
+        borderRadius: BorderRadius.circular(12),
+        showProgressBar: true,
+      );
+
+      // Re-fetch challenge details to get updated user_progress
+      await refreshActiveChallenge(challengeId);
+      return true;
+    } catch (e) {
+      Get.back(); // dismiss loading dialog
+      toastification.show(
+        type: ToastificationType.error,
+        style: ToastificationStyle.fillColored,
+        primaryColor: Colors.red,
+        foregroundColor: Colors.white,
+        title: Text(
+          "Error",
+          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+        ),
+        description: Text(
+          e.toString().replaceAll("Exception: ", ""),
+          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+        ),
+        alignment: Alignment.topRight,
+        autoCloseDuration: const Duration(seconds: 4),
+        borderRadius: BorderRadius.circular(12),
+        showProgressBar: true,
+      );
+      return false;
+    }
+  }
+
+  /// Claim Reward when Challenge is Complete: POST /api/gamification/challenges/claim-reward/
+  Future<void> claimChallengeReward({
+    required int progressId,
+    required int points,
+  }) async {
+    try {
+      isClaimingReward.value = true;
+      await _service.claimChallengeReward(progressId);
+
+      // Refresh Home overview & Daily challenge
+      fetchHomeOverview();
+
+      toastification.show(
+        type: ToastificationType.success,
+        style: ToastificationStyle.fillColored,
+        primaryColor: AppColor.green16A34A,
+        foregroundColor: Colors.white,
+        title: Text(
+          "🎉 Challenge Completed!",
+          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+        ),
+        description: Text(
+          "Congratulations! You've claimed +$points points!",
+          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+        ),
+        alignment: Alignment.topRight,
+        autoCloseDuration: const Duration(seconds: 5),
+        borderRadius: BorderRadius.circular(12),
+        showProgressBar: true,
+      );
+    } catch (e) {
+      print('Error claiming challenge reward: $e');
+    } finally {
+      isClaimingReward.value = false;
+    }
+  }
+
+  /// Check if a specific exercise is already completed in active challenge
+  bool isExerciseCompleted(int index, UserExercise exercise) {
+    final progress = activeChallenge.value?.userProgress;
+    if (progress == null) return false;
+    final completed = progress.completedExercises;
+
+    return completed.contains(index) ||
+        completed.contains(index.toString()) ||
+        completed.contains(exercise.id) ||
+        completed.contains(exercise.id.toString()) ||
+        completed.contains(exercise.order);
   }
 
   Future<void> fetchRecommendedWorkouts() async {

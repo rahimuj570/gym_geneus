@@ -97,25 +97,51 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     duration: '${challenge.estimatedDuration} min',
                     calories: '${challenge.estimatedCalories} kcal',
                     exercises: '${challenge.exercises.length} exercises',
-                    onTap: () {
-                      final workout = Workout(
-                        id: challenge.id,
-                        name: challenge.name,
-                        description: challenge.description,
-                        estimatedDuration: challenge.estimatedDuration.toString(),
-                        estimatedCalories: challenge.estimatedCalories.toString(),
-                        exerciseCount: challenge.exercises.length,
-                        difficulty: challenge.difficultyDisplay,
-                        image: '',
-                        exercises: challenge.exercises,
+                    onTap: () async {
+                      Get.dialog(
+                        const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                        barrierDismissible: false,
                       );
+                      try {
+                        final detailedChallenge = await homeController
+                            .startChallengeAndLoad(challenge.id);
+                        Get.back();
 
-                      workoutController.selectedWorkoutDetail.value = workout;
+                        final workout = Workout(
+                          id: detailedChallenge?.id ?? challenge.id,
+                          name: detailedChallenge?.name ?? challenge.name,
+                          description: detailedChallenge?.description ??
+                              challenge.description,
+                          estimatedDuration:
+                              '${detailedChallenge?.estimatedDuration ?? challenge.estimatedDuration} min',
+                          estimatedCalories:
+                              '${detailedChallenge?.estimatedCalories ?? challenge.estimatedCalories} kcal',
+                          exerciseCount: detailedChallenge?.exercises.length ??
+                              challenge.exercises.length,
+                          difficulty: detailedChallenge
+                                  ?.difficultyDisplay.isNotEmpty ==
+                              true
+                              ? detailedChallenge!.difficultyDisplay
+                              : challenge.difficultyDisplay,
+                          image: '',
+                          exercises: detailedChallenge?.exercises ??
+                              challenge.exercises,
+                        );
 
-                      Get.to(
-                        () => const WorkoutDetailsScreen(),
-                        transition: Transition.rightToLeft,
-                      );
+                        workoutController.selectedWorkoutDetail.value =
+                            workout;
+
+                        Get.to(
+                          () => WorkoutDetailsScreen(
+                            challengeId: detailedChallenge?.id ?? challenge.id,
+                          ),
+                          transition: Transition.rightToLeft,
+                        );
+                      } catch (e) {
+                        Get.back();
+                      }
                     },
                   );
                 },

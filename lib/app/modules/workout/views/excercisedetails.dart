@@ -12,11 +12,22 @@ import '../../../widgets/backbutton_widget.dart';
 import '../controllers/workoutcontroller.dart';
 import '../model/workoutmodel.dart';
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
+import 'package:kenzeno/app/modules/home/controllers/homecontroller.dart';
 import 'package:toastification/toastification.dart';
 
 class ExerciseDetailsScreen extends StatefulWidget {
-  final workutid;
-  const ExerciseDetailsScreen({super.key, this.workutid});
+  final dynamic workutid;
+  final int? challengeId;
+  final int? exerciseIndex;
+  final bool isChallenge;
+
+  const ExerciseDetailsScreen({
+    super.key,
+    this.workutid,
+    this.challengeId,
+    this.exerciseIndex,
+    this.isChallenge = false,
+  });
 
   @override
   State<ExerciseDetailsScreen> createState() => _ExerciseDetailsScreenState();
@@ -225,14 +236,24 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen>
                       visible: showCompleteButton.value,
                       child: ElevatedButton(
                         onPressed: () async {
-                          // 1. Track progress (this shows the loading dialog)
-                          await Get.find<WorkoutController>()
-                              .trackWorkoutProgress(
-                            userExerciseId: exercise.id,
-                            userWorkoutId: widget.workutid,
-                          );
+                          if (widget.isChallenge &&
+                              widget.challengeId != null &&
+                              widget.exerciseIndex != null) {
+                            final homeCtrl = Get.find<HomeController>();
+                            await homeCtrl.completeChallengeExercise(
+                              challengeId: widget.challengeId!,
+                              exerciseIndex: widget.exerciseIndex!,
+                            );
+                          } else {
+                            // 1. Track progress (this shows the loading dialog)
+                            await Get.find<WorkoutController>()
+                                .trackWorkoutProgress(
+                              userExerciseId: exercise.id,
+                              userWorkoutId: widget.workutid,
+                            );
+                          }
                           // 2. Go back to Exercise list
-                          Get.back();
+                          Get.back(result: true);
                         },
 
                         style: ElevatedButton.styleFrom(

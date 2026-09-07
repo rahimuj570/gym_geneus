@@ -39,10 +39,16 @@ class DailyChallenge extends StatelessWidget {
         );
 
         try {
-          await controller.fetchChallenges("DAILY");
-          Get.back(); // close dialog
+          int? challengeId = controller.dailyChallenge.value?.id;
+          if (challengeId == null) {
+            await controller.fetchChallenges("DAILY");
+            if (controller.challenges.isNotEmpty) {
+              challengeId = controller.challenges.first.id;
+            }
+          }
 
-          if (controller.challenges.isEmpty) {
+          if (challengeId == null) {
+            Get.back(); // close dialog
             toastification.show(
               type: ToastificationType.info,
               style: ToastificationStyle.fillColored,
@@ -66,26 +72,33 @@ class DailyChallenge extends StatelessWidget {
             return;
           }
 
-          final challenge = controller.challenges.first;
+          // Call Start API (POST) and fetch complete details + progress (GET)
+          final challenge =
+              await controller.startChallengeAndLoad(challengeId);
+          Get.back(); // close dialog
 
-          // Convert Challenge → Workout (perfect 1:1 mapping)
+          if (challenge == null) return;
+
+          // Convert Challenge → Workout for WorkoutDetailsScreen
           final workout = Workout(
             id: challenge.id,
             name: challenge.name,
             description: challenge.description,
-            estimatedDuration: challenge.estimatedDuration.toString(),
-            estimatedCalories: challenge.estimatedCalories.toString(),
+            estimatedDuration: '${challenge.estimatedDuration} min',
+            estimatedCalories: '${challenge.estimatedCalories} kcal',
             exerciseCount: challenge.exercises.length,
-            difficulty: challenge.difficultyDisplay,
-            image: '', // or add image field later
-            exercises: challenge.exercises, // Direct reuse!
+            difficulty: challenge.difficultyDisplay.isNotEmpty
+                ? challenge.difficultyDisplay
+                : 'Beginner',
+            image: '',
+            exercises: challenge.exercises,
           );
 
-          // Set it exactly how your WorkoutDetailsScreen expects
+          // Set it for WorkoutDetailsScreen
           workoutController.selectedWorkoutDetail.value = workout;
 
           Get.to(
-            () => const WorkoutDetailsScreen(),
+            () => WorkoutDetailsScreen(challengeId: challenge.id),
             transition: Transition.rightToLeft,
           );
         } catch (e) {
@@ -100,7 +113,7 @@ class DailyChallenge extends StatelessWidget {
               style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
             ),
             description: Text(
-              "Failed to load challenge",
+              e.toString().replaceAll("Exception: ", ""),
               style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
             ),
             alignment: Alignment.topRight,

@@ -248,6 +248,166 @@ class HomeService extends GetxService {
     }
   }
 
+  /// Start Challenge: POST /api/gamification/challenges/start/
+  /// Body: {"challenge_id": 3}
+  Future<Map<String, dynamic>> startChallenge(int challengeId) async {
+    final token = box.read('loginToken');
+    if (token == null) throw Exception('Login required');
+
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/gamification/challenges/start/',
+    );
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'challenge_id': challengeId}),
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.POST,
+      tag: 'Gamification-StartChallenge',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(utf8.decode(response.bodyBytes))
+          as Map<String, dynamic>;
+    } else {
+      final error = jsonDecode(utf8.decode(response.bodyBytes));
+      throw Exception(
+        error['message'] ?? error['detail'] ?? 'Failed to start challenge',
+      );
+    }
+  }
+
+  /// Get Challenge Details & Progress: GET /api/gamification/challenges/{id}/
+  Future<Challenge> fetchChallengeDetail(int challengeId) async {
+    final token = box.read('loginToken');
+    if (token == null) throw Exception('Login required');
+
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/gamification/challenges/$challengeId/',
+    );
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.GET,
+      tag: 'Gamification-ChallengeDetail',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
+      final data = json['data'] as Map<String, dynamic>;
+      return Challenge.fromJson(data);
+    } else {
+      final error = jsonDecode(utf8.decode(response.bodyBytes));
+      throw Exception(
+        error['message'] ??
+            error['detail'] ??
+            'Failed to load challenge details',
+      );
+    }
+  }
+
+  /// Complete Exercise in Challenge: POST /api/gamification/challenges/complete-exercise/
+  /// Body: {"challenge_id": 3, "exercise_index": 1}
+  Future<Map<String, dynamic>> completeChallengeExercise({
+    required int challengeId,
+    required int exerciseIndex,
+  }) async {
+    final token = box.read('loginToken');
+    if (token == null) throw Exception('Login required');
+
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/gamification/challenges/complete-exercise/',
+    );
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'challenge_id': challengeId,
+        'exercise_index': exerciseIndex,
+      }),
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.POST,
+      tag: 'Gamification-CompleteExercise',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(utf8.decode(response.bodyBytes))
+          as Map<String, dynamic>;
+    } else {
+      final error = jsonDecode(utf8.decode(response.bodyBytes));
+      throw Exception(
+        error['message'] ?? error['detail'] ?? 'Failed to complete exercise',
+      );
+    }
+  }
+
+  /// Claim Reward: POST /api/gamification/challenges/claim-reward/
+  /// Body: {"challenge_progress_id": 0}
+  Future<Map<String, dynamic>> claimChallengeReward(
+    int challengeProgressId,
+  ) async {
+    final token = box.read('loginToken');
+    if (token == null) throw Exception('Login required');
+
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/gamification/challenges/claim-reward/',
+    );
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'challenge_progress_id': challengeProgressId}),
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.POST,
+      tag: 'Gamification-ClaimReward',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(utf8.decode(response.bodyBytes))
+          as Map<String, dynamic>;
+    } else {
+      final error = jsonDecode(utf8.decode(response.bodyBytes));
+      throw Exception(
+        error['message'] ?? error['detail'] ?? 'Failed to claim reward',
+      );
+    }
+  }
+
   // In your WorkoutService class
   Future<TrackProgress> fetchDailyProgress({String? date}) async {
     final token = GetStorage().read("loginToken");
