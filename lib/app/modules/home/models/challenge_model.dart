@@ -31,15 +31,16 @@ class Challenge {
   final String difficulty;
   final String difficultyDisplay;
   final int completionPoints;
-  final DateTime startDate;
-  final DateTime endDate;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final List<UserExercise> exercises; // Reusing your model!
+  final int exerciseCount;
   final int estimatedDuration;
   final int estimatedCalories;
   final bool isActive;
   final bool isAvailable;
   final double timeRemainingSeconds;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   Challenge({
     required this.id,
@@ -50,41 +51,69 @@ class Challenge {
     required this.difficulty,
     required this.difficultyDisplay,
     required this.completionPoints,
-    required this.startDate,
-    required this.endDate,
-    required this.exercises,
+    this.startDate,
+    this.endDate,
+    this.exercises = const [],
+    this.exerciseCount = 0,
     required this.estimatedDuration,
     required this.estimatedCalories,
     required this.isActive,
     required this.isAvailable,
-    required this.timeRemainingSeconds,
-    required this.createdAt,
+    this.timeRemainingSeconds = 0.0,
+    this.createdAt,
   });
 
   factory Challenge.fromJson(Map<String, dynamic> json) {
-    return Challenge(
-      id: json['id'],
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
-      challengeType: json['challenge_type'] ?? '',
-      challengeTypeDisplay: json['challenge_type_display'] ?? '',
-      difficulty: json['difficulty'] ?? '',
-      difficultyDisplay: json['difficulty_display'] ?? '',
-      completionPoints: json['completion_points'] ?? 0,
-      startDate: DateTime.parse(json['start_date']),
-      endDate: DateTime.parse(json['end_date']),
-      exercises: (json['exercises'] as List)
+    int parsedDuration = 0;
+    if (json['estimated_duration'] is int) {
+      parsedDuration = json['estimated_duration'];
+    } else if (json['estimated_duration'] != null) {
+      parsedDuration = int.tryParse(json['estimated_duration'].toString()) ?? 0;
+    }
+
+    int parsedCalories = 0;
+    if (json['estimated_calories'] is int) {
+      parsedCalories = json['estimated_calories'];
+    } else if (json['estimated_calories'] != null) {
+      parsedCalories = int.tryParse(json['estimated_calories'].toString()) ?? 0;
+    }
+
+    int parsedExerciseCount = 0;
+    if (json['exercise_count'] is int) {
+      parsedExerciseCount = json['exercise_count'];
+    } else if (json['exercises'] is List) {
+      parsedExerciseCount = (json['exercises'] as List).length;
+    }
+
+    List<UserExercise> parsedExercises = [];
+    if (json['exercises'] != null && json['exercises'] is List) {
+      parsedExercises = (json['exercises'] as List)
           .map(
             (e) =>
-                UserExercise.fromJson(_mapChallengeExerciseToUserExercise(e)),
+                UserExercise.fromJson(_mapChallengeExerciseToUserExercise(e as Map<String, dynamic>)),
           )
-          .toList(),
-      estimatedDuration: json['estimated_duration'] ?? 0,
-      estimatedCalories: json['estimated_calories'] ?? 0,
-      isActive: json['is_active'] ?? false,
-      isAvailable: json['is_available'] ?? false,
-      timeRemainingSeconds: (json['time_remaining_seconds'] as num).toDouble(),
-      createdAt: DateTime.parse(json['created_at']),
+          .toList();
+    }
+
+    return Challenge(
+      id: json['id'] as int? ?? 0,
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      challengeType: json['challenge_type'] as String? ?? '',
+      challengeTypeDisplay: json['challenge_type_display'] as String? ?? 'Daily Challenge',
+      difficulty: json['difficulty'] as String? ?? '',
+      difficultyDisplay: json['difficulty_display'] as String? ?? '',
+      completionPoints: json['completion_points'] as int? ?? 0,
+      startDate: json['start_date'] != null ? DateTime.tryParse(json['start_date'].toString()) : null,
+      endDate: json['end_date'] != null ? DateTime.tryParse(json['end_date'].toString()) : null,
+      exercises: parsedExercises,
+      exerciseCount: parsedExerciseCount,
+      estimatedDuration: parsedDuration,
+      estimatedCalories: parsedCalories,
+      isActive: json['is_active'] as bool? ?? false,
+      isAvailable: json['is_available'] as bool? ?? false,
+      timeRemainingSeconds: (json['time_remaining_seconds'] as num?)?.toDouble() ?? 0.0,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
     );
   }
 

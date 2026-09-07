@@ -544,5 +544,63 @@ class HomeService extends GetxService {
       return false;
     }
   }
+
+  /// Fetch Home Overview (Daily Workout Session, Daily Challenge, Workouts, Articles)
+  Future<Map<String, dynamic>> fetchHomeOverview() async {
+    try {
+      final token = box.read("loginToken");
+      final url = Uri.parse("${AppConstants.baseUrl}/accounts/home/");
+
+      final headers = <String, String>{
+        "Accept": "application/json",
+      };
+      if (token != null && token.toString().isNotEmpty) {
+        headers["Authorization"] = "Bearer $token";
+      }
+
+      final response = await http.get(url, headers: headers);
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url.toString(),
+        method: Method.GET,
+        tag: 'Home-Overview',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> json =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+
+        Workout? dailyWorkout;
+        if (json['daily_workout_session'] != null &&
+            json['daily_workout_session'] is Map<String, dynamic>) {
+          dailyWorkout = Workout.fromJson(
+            json['daily_workout_session'] as Map<String, dynamic>,
+          );
+        }
+
+        Challenge? dailyChallenge;
+        if (json['daily_challenge'] != null &&
+            json['daily_challenge'] is Map<String, dynamic>) {
+          dailyChallenge = Challenge.fromJson(
+            json['daily_challenge'] as Map<String, dynamic>,
+          );
+        }
+
+        return {
+          'daily_workout_session': dailyWorkout,
+          'daily_challenge': dailyChallenge,
+        };
+      } else {
+        throw Exception(
+          "Failed to load home data (${response.statusCode}): ${response.body}",
+        );
+      }
+    } catch (e) {
+      print("Error in fetchHomeOverview: $e");
+      rethrow;
+    }
+  }
 }
 

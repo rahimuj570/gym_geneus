@@ -120,6 +120,7 @@ class HomeScreen extends StatelessWidget {
               await Get.find<ProfileController>().fetchProfile();
             }
             await Future.wait([
+              controller.fetchHomeOverview(),
               controller.fetchAllArticles(),
               controller.fetchWorkoutVideos(),
               controller.fetchActivities(),
@@ -139,10 +140,14 @@ class HomeScreen extends StatelessWidget {
                 _buildWorkoutCard(),
                 SizedBox(height: 24.h),
                 GestureDetector(
-                  onTap: () => Get.to(
-                    () => DailyChallenge(),
-                    transition: Transition.rightToLeft,
-                  ),
+                  onTap: () {
+                    if (controller.dailyChallenge.value != null) {
+                      Get.to(
+                        () => const DailyChallenge(),
+                        transition: Transition.rightToLeft,
+                      );
+                    }
+                  },
                   child: _buildDailyChallenge(),
                 ),
                 SizedBox(height: 24.h),
@@ -158,64 +163,41 @@ class HomeScreen extends StatelessWidget {
   }
 
   String get _membershipWeek {
-    final profile = profileController.profile.value;
-    if (profile?.joinedAt == null) return '1';
-
-    try {
-      final joinedDate = DateTime.parse(profile!.joinedAt!).toLocal();
-      final now = DateTime.now();
-
-      final difference = now.difference(joinedDate).inDays;
-
-      final weekNumber = (difference / 7).floor() + 1;
-
-      return weekNumber.toString();
-    } catch (e) {
-      return '1';
-    }
+    final diff = DateTime.now().difference(DateTime(2023, 1, 1));
+    return (diff.inDays / 7).ceil().toString();
   }
 
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 16.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Obx(() {
-            return Text(
-              'Week $_membershipWeek',
-              style: AppTextStyles.poppinsBold.copyWith(
-                fontSize: 20.sp,
-                color: Colors.white,
-              ),
+            final firstName =
+                profileController.profile.value?.fullName?.split(' ').first ??
+                'there';
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'WEEK $_membershipWeek',
+                  style: AppTextStyles.poppinsMedium.copyWith(
+                    fontSize: 14.sp,
+                    color: AppColor.gray9CA3AF,
+                  ),
+                ),
+                Text(
+                  'HELLO $firstName,',
+                  style: AppTextStyles.poppinsBold.copyWith(
+                    fontSize: 24.sp,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             );
           }),
-          // GestureDetector(
-          //   onTap: () => Get.to(
-          //     () => Subscription(),
-          //     transition: Transition.rightToLeft,
-          //   ),
-          //   child: Container(
-          //     padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          //     decoration: BoxDecoration(
-          //       color: Colors.white,
-          //       borderRadius: BorderRadius.circular(20.r),
-          //     ),
-          //     child: Row(
-          //       children: [
-          //         Icon(Icons.diamond, color: AppColor.customPurple, size: 20.sp),
-          //         SizedBox(width: 8.w),
-          //         Text(
-          //           '50% OFF',
-          //           style: AppTextStyles.poppinsBold.copyWith(
-          //             fontSize: 14.sp,
-          //             color: Colors.black,
-          //           ),
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          // ),
         ],
       ),
     );
@@ -228,30 +210,6 @@ class HomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildWeekCalendar(),
-          SizedBox(height: 10.h),
-
-          Obx(() {
-            final firstName =
-                profileController.profile.value?.fullName?.split(' ').first ??
-                'there';
-            return Text(
-              'Hi there, $firstName!',
-              style: AppTextStyles.poppinsBold.copyWith(
-                fontSize: 30.sp,
-                color: Colors.white,
-              ),
-            );
-          }),
-
-          SizedBox(height: 5.h),
-          Text(
-            'Good day so far?',
-            style: AppTextStyles.poppinsRegular.copyWith(
-              fontSize: 16.sp,
-              color: AppColor.gray9CA3AF,
-            ),
-          ),
-
           SizedBox(height: 20.h),
           _buildFeatureRow(),
           SizedBox(height: 20.h),
@@ -354,7 +312,7 @@ class HomeScreen extends StatelessWidget {
             _buildDivider(),
             _buildFeatureColumn(
               svgPath: ImageAssets.svg43,
-              label: 'Progress Tracking',
+              label: 'Progress',
               iconColor: AppColor.white,
               textColor: AppColor.white,
               onTap: () => Get.to(
@@ -393,9 +351,8 @@ class HomeScreen extends StatelessWidget {
   Widget _buildDivider() {
     return Container(
       width: 1.w,
-      height: 60.h,
-      color: AppColor.customPurple.withOpacity(0.5),
-      margin: EdgeInsets.symmetric(horizontal: 10.w),
+      height: 40.h,
+      color: Colors.white.withValues(alpha: 0.1),
     );
   }
 
@@ -406,29 +363,32 @@ class HomeScreen extends StatelessWidget {
     required Color textColor,
     required VoidCallback onTap,
   }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColor.white15,
+            ),
+            child: SvgPicture.asset(
               svgPath,
+              width: 24.w,
+              height: 24.h,
               colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
-              height: 30.h,
-              width: 30.w,
             ),
-            SizedBox(height: 5.h),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.poppinsRegular.copyWith(
-                fontSize: 10.sp,
-                color: textColor,
-              ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            label,
+            style: AppTextStyles.poppinsMedium.copyWith(
+              fontSize: 10.sp,
+              color: textColor,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -444,117 +404,169 @@ class HomeScreen extends StatelessWidget {
           border: Border.all(width: 1, color: AppColor.gray9CA3AF),
         ),
         child: Obx(() {
-          final selectedIndex = controller.selectedWorkoutTab.value;
-          final currentData = controller.workoutTabDetails[selectedIndex];
+          if (controller.isLoadingHomeOverview.value) {
+            return SizedBox(
+              height: 180.h,
+              child: const Center(
+                child: CircularProgressIndicator(color: AppColor.customPurple),
+              ),
+            );
+          }
+
+          final session = controller.dailyWorkoutSession.value;
           final coachImg = profileController.activeCoachImagePath;
-          final List<String> currentImages = [
+          final List<String> previewImages = [
             coachImg,
             ImageAssets.img_4,
             ImageAssets.img_5,
             ImageAssets.img_3,
           ];
 
+          if (session == null) {
+            return SizedBox(
+              height: 120.h,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.fitness_center,
+                      color: AppColor.gray9CA3AF,
+                      size: 28.sp,
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      "No daily workout session available",
+                      style: AppTextStyles.poppinsMedium.copyWith(
+                        color: AppColor.gray9CA3AF,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final durationText =
+              session.estimatedDuration.isNotEmpty &&
+                  session.estimatedDuration != 'N/A'
+              ? session.estimatedDuration
+              : '45 minutes';
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
-                    onTap: () => controller.selectedWorkoutTab.value = 0,
-                    child: Container(
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 6.h,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFA855F7), Color(0xFFD8B4FE)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.fitness_center_rounded,
+                          color: Colors.white,
+                          size: 14.sp,
+                        ),
+                        SizedBox(width: 6.w),
+                        Text(
+                          'Daily Workout Session',
+                          style: AppTextStyles.poppinsBold.copyWith(
+                            fontSize: 12.sp,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (session.difficulty.isNotEmpty)
+                    Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 8.h,
+                        horizontal: 10.w,
+                        vertical: 4.h,
                       ),
                       decoration: BoxDecoration(
-                        gradient: selectedIndex == 0
-                            ? const LinearGradient(
-                                colors: [Color(0xFFA855F7), Color(0xFFD8B4FE)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              )
-                            : null,
-                        color: selectedIndex == 0 ? null : AppColor.white15,
-                        borderRadius: BorderRadius.circular(20.r),
+                        color: AppColor.white15,
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Text(
-                        'Special for Kenz',
+                        session.difficulty.toUpperCase(),
                         style: AppTextStyles.poppinsMedium.copyWith(
-                          fontSize: 14.sp,
-                          color: Colors.white,
+                          fontSize: 10.sp,
+                          color: Colors.white70,
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 12.w),
-                  GestureDetector(
-                    onTap: () => controller.selectedWorkoutTab.value = 1,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 8.h,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: selectedIndex == 1
-                            ? const LinearGradient(
-                                colors: [Color(0xFFA855F7), Color(0xFFD8B4FE)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              )
-                            : null,
-                        color: selectedIndex == 1 ? null : AppColor.white15,
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Text(
-                        'Gym',
-                        style: AppTextStyles.poppinsMedium.copyWith(
-                          fontSize: 14.sp,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 12.h),
               Text(
-                currentData['duration'] as String? ?? '53 min',
+                durationText,
                 style: AppTextStyles.poppinsBold.copyWith(
-                  fontSize: 48.sp,
+                  fontSize: 38.sp,
                   color: Colors.white,
+                  height: 1.1,
                 ),
               ),
+              SizedBox(height: 4.h),
               Text(
-                currentData['subtitle'] as String? ?? 'Chest, Shoulders, Core',
-                style: AppTextStyles.poppinsRegular.copyWith(
+                session.name,
+                style: AppTextStyles.poppinsSemiBold.copyWith(
                   fontSize: 16.sp,
-                  color: AppColor.gray9CA3AF,
+                  color: AppColor.customPurple,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+              if (session.description.isNotEmpty) ...[
+                SizedBox(height: 4.h),
+                Text(
+                  session.description,
+                  style: AppTextStyles.poppinsRegular.copyWith(
+                    fontSize: 13.sp,
+                    color: AppColor.gray9CA3AF,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
               SizedBox(height: 16.h),
               Row(
                 children: [
                   Expanded(
                     child: SizedBox(
-                      height: 60.h,
+                      height: 50.h,
                       child: Stack(
-                        children: List.generate(currentImages.length, (index) {
+                        children: List.generate(previewImages.length, (index) {
                           return Positioned(
-                            left: index * 50.w,
+                            left: index * 42.w,
                             child: Container(
-                              width: 80.w,
-                              height: 60.h,
+                              width: 65.w,
+                              height: 50.h,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20.r),
+                                borderRadius: BorderRadius.circular(16.r),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   width: 2.w,
                                 ),
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20.r),
+                                borderRadius: BorderRadius.circular(16.r),
                                 child: Image.asset(
-                                  currentImages[index],
+                                  previewImages[index],
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -566,21 +578,24 @@ class HomeScreen extends StatelessWidget {
                   ),
                   SizedBox(width: 12.w),
                   GestureDetector(
-                    onTap: () => Get.to(
-                      () => Workout(),
-                      transition: Transition.rightToLeft,
-                    ),
+                    onTap: () {
+                      final workoutController =
+                          Get.isRegistered<WorkoutController>()
+                          ? Get.find<WorkoutController>()
+                          : Get.put(WorkoutController());
+                      workoutController.loadWorkoutDetail(session.id);
+                    },
                     child: Container(
-                      width: 60.w,
-                      height: 60.h,
+                      width: 50.w,
+                      height: 50.h,
                       decoration: BoxDecoration(
                         color: AppColor.purple896CFE,
-                        borderRadius: BorderRadius.circular(18.r),
+                        borderRadius: BorderRadius.circular(16.r),
                       ),
                       child: Icon(
                         Icons.arrow_forward,
                         color: Colors.black,
-                        size: 25.h,
+                        size: 22.h,
                       ),
                     ),
                   ),
@@ -594,53 +609,143 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildDailyChallenge() {
-    return Container(
-      color: AppColor.purpleRoyal,
-      padding: EdgeInsets.all(15.w),
-      child: Container(
-        height: 120.h,
-        decoration: BoxDecoration(
-          color: AppColor.black111214,
-          borderRadius: BorderRadius.circular(24.r),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Daily Challenge',
-                    style: AppTextStyles.poppinsBold.copyWith(
-                      fontSize: 25.sp,
-                      color: Colors.white,
-                      height: 1.2,
+    return Obx(() {
+      final challenge = controller.dailyChallenge.value;
+      final hasChallenge = challenge != null;
+
+      return Container(
+        color: AppColor.purpleRoyal,
+        padding: EdgeInsets.all(15.w),
+        child: Container(
+          height: 120.h,
+          decoration: BoxDecoration(
+            color: AppColor.black111214,
+            borderRadius: BorderRadius.circular(24.r),
+          ),
+          child: hasChallenge
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 14.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Wrap(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8.w,
+                                    vertical: 3.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColor.customPurple.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Text(
+                                    'DAILY CHALLENGE',
+                                    style: AppTextStyles.poppinsBold.copyWith(
+                                      fontSize: 10.sp,
+                                      color: AppColor.customPurple,
+                                    ),
+                                  ),
+                                ),
+                                if (challenge.completionPoints > 0) ...[
+                                  SizedBox(width: 6.w),
+                                  Text(
+                                    '+${challenge.completionPoints} pts',
+                                    style: AppTextStyles.poppinsSemiBold
+                                        .copyWith(
+                                          fontSize: 11.sp,
+                                          color: Colors.amberAccent,
+                                        ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            SizedBox(height: 6.h),
+                            Text(
+                              challenge.name,
+                              style: AppTextStyles.poppinsBold.copyWith(
+                                fontSize: 16.sp,
+                                color: Colors.white,
+                                height: 1.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              challenge.description.isNotEmpty
+                                  ? challenge.description
+                                  : "${challenge.exerciseCount} exercises · ${challenge.estimatedDuration} min",
+                              style: AppTextStyles.poppinsRegular.copyWith(
+                                fontSize: 11.sp,
+                                color: Colors.white70,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    'Plank With Hip Twist',
-                    style: AppTextStyles.poppinsRegular.copyWith(
-                      fontSize: 14.sp,
-                      color: Colors.white70,
+                    ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(24.r),
+                        bottomRight: Radius.circular(24.r),
+                      ),
+                      child: Image.asset(
+                        ImageAssets.img_17,
+                        height: 120.h,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ],
+                )
+              : Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.emoji_events_outlined,
+                              color: AppColor.gray9CA3AF,
+                              size: 22.sp,
+                            ),
+                            SizedBox(width: 8.w),
+                            Text(
+                              'Daily Challenge',
+                              style: AppTextStyles.poppinsBold.copyWith(
+                                fontSize: 16.sp,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 6.h),
+                        Text(
+                          'No daily challenge available today. Check back tomorrow!',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.poppinsRegular.copyWith(
+                            fontSize: 12.sp,
+                            color: AppColor.gray9CA3AF,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            ClipRRect(
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(24.r),
-                bottomRight: Radius.circular(24.r),
-              ),
-              child: Image.asset(ImageAssets.img_17),
-            ),
-          ],
+                ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildRecommendationsSection() {

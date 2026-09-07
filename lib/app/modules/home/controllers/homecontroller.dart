@@ -37,8 +37,14 @@ class HomeController extends GetxController {
   var selectedDate = DateTime.now().obs;
   var isProgressLoading = true.obs; // ← Separate loading state for progress
 
+  // HOME OVERVIEW API DATA
+  var dailyWorkoutSession = Rxn<Workout>();
+  var dailyChallenge = Rxn<Challenge>();
+  RxBool isLoadingHomeOverview = false.obs;
+
   @override
   void onInit() {
+    fetchHomeOverview();
     fetchAllArticles();
     fetchWorkoutVideos();
     fetchActivities();
@@ -46,6 +52,19 @@ class HomeController extends GetxController {
     loadProgress(date: today);
     fetchRecommendedWorkouts();
     super.onInit();
+  }
+
+  Future<void> fetchHomeOverview() async {
+    try {
+      isLoadingHomeOverview.value = true;
+      final result = await _service.fetchHomeOverview();
+      dailyWorkoutSession.value = result['daily_workout_session'] as Workout?;
+      dailyChallenge.value = result['daily_challenge'] as Challenge?;
+    } catch (e) {
+      print("Error fetching home overview: $e");
+    } finally {
+      isLoadingHomeOverview.value = false;
+    }
   }
 
   // FIXED: Now uses separate loading state + safe int conversion
