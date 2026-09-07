@@ -261,72 +261,75 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildWeekCalendar() {
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
+    return Obx(() {
+      final today = DateTime.now();
+      final todayDate = DateTime(today.year, today.month, today.day);
+      final weekDaysList = _weekDays;
 
-    return SizedBox(
-      height: 80.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _weekDays.length,
-        itemBuilder: (context, index) {
-          final day = _weekDays[index];
-          final isToday = day['fullDate'] == todayDate;
+      return SizedBox(
+        height: 80.h,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: weekDaysList.length,
+          itemBuilder: (context, index) {
+            final day = weekDaysList[index];
+            final isToday = day['fullDate'] == todayDate;
 
-          return Container(
-            width: 50.w,
-            margin: EdgeInsets.only(right: 12.w),
-            child: Column(
-              children: [
-                Text(
-                  day['day'],
-                  style: AppTextStyles.poppinsMedium.copyWith(
-                    fontSize: 12.sp,
-                    color: AppColor.gray9CA3AF,
+            return Container(
+              width: 50.w,
+              margin: EdgeInsets.only(right: 12.w),
+              child: Column(
+                children: [
+                  Text(
+                    day['day'],
+                    style: AppTextStyles.poppinsMedium.copyWith(
+                      fontSize: 12.sp,
+                      color: AppColor.gray9CA3AF,
+                    ),
                   ),
-                ),
-                SizedBox(height: 5.h),
-                Container(
-                  width: 50.w,
-                  height: 50.h,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: isToday
-                        ? Border.all(color: AppColor.customPurple, width: 2)
-                        : null,
-                    color: Colors.transparent,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${day['date']}',
-                        style: AppTextStyles.poppinsSemiBold.copyWith(
-                          fontSize: 18.sp,
-                          color: Colors.white,
-                        ),
-                      ),
-                      if (day['hasActivity'] == true)
-                        Container(
-                          width: 6.w,
-                          height: 6.h,
-                          margin: EdgeInsets.only(top: 4.h),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
+                  SizedBox(height: 5.h),
+                  Container(
+                    width: 50.w,
+                    height: 50.h,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: isToday
+                          ? Border.all(color: AppColor.customPurple, width: 2)
+                          : null,
+                      color: Colors.transparent,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${day['date']}',
+                          style: AppTextStyles.poppinsSemiBold.copyWith(
+                            fontSize: 18.sp,
                             color: Colors.white,
                           ),
-                        )
-                      else
-                        SizedBox(height: 8.h),
-                    ],
+                        ),
+                        if (day['hasActivity'] == true)
+                          Container(
+                            width: 6.w,
+                            height: 6.h,
+                            margin: EdgeInsets.only(top: 4.h),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
+                          )
+                        else
+                          SizedBox(height: 8.h),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    });
   }
 
   Widget _buildFeatureRow() {

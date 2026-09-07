@@ -70,7 +70,9 @@ class _WorkoutVideoPlayerScreenState extends State<WorkoutVideoPlayerScreen> {
     final rawUrl = widget.video.videoUrl;
     _resolvedUrl = _formatVideoUrl(rawUrl);
 
-    print("WorkoutVideoPlayer: Initializing with resolved URL: $_resolvedUrl (Raw: $rawUrl)");
+    print(
+      "WorkoutVideoPlayer: Initializing with resolved URL: $_resolvedUrl (Raw: $rawUrl)",
+    );
 
     if (_resolvedUrl.isEmpty) {
       setState(() {
@@ -150,7 +152,9 @@ class _WorkoutVideoPlayerScreenState extends State<WorkoutVideoPlayerScreen> {
 
       return true;
     } catch (e) {
-      print("WorkoutVideoPlayer Init attempt error (withAuthHeader=$withAuthHeader): $e");
+      print(
+        "WorkoutVideoPlayer Init attempt error (withAuthHeader=$withAuthHeader): $e",
+      );
       await _disposeController();
       return false;
     }
@@ -287,7 +291,10 @@ class _WorkoutVideoPlayerScreenState extends State<WorkoutVideoPlayerScreen> {
                             SizedBox(height: 12.h),
                             ElevatedButton.icon(
                               onPressed: _openInExternalBrowser,
-                              icon: const Icon(Icons.open_in_new, color: Colors.white),
+                              icon: const Icon(
+                                Icons.open_in_new,
+                                color: Colors.white,
+                              ),
                               label: Text(
                                 "Open Video",
                                 style: AppTextStyles.poppinsMedium.copyWith(
@@ -334,7 +341,11 @@ class _WorkoutVideoPlayerScreenState extends State<WorkoutVideoPlayerScreen> {
                               children: [
                                 ElevatedButton.icon(
                                   onPressed: _initPlayer,
-                                  icon: Icon(Icons.refresh, size: 16.r, color: Colors.white),
+                                  icon: Icon(
+                                    Icons.refresh,
+                                    size: 16.r,
+                                    color: Colors.white,
+                                  ),
                                   label: Text(
                                     "Retry",
                                     style: AppTextStyles.poppinsMedium.copyWith(
@@ -355,27 +366,38 @@ class _WorkoutVideoPlayerScreenState extends State<WorkoutVideoPlayerScreen> {
                                 ),
                                 if (_resolvedUrl.isNotEmpty &&
                                     (_resolvedUrl.startsWith('http://') ||
-                                        _resolvedUrl.startsWith('https://'))) ...[
+                                        _resolvedUrl.startsWith(
+                                          'https://',
+                                        ))) ...[
                                   SizedBox(width: 8.w),
                                   OutlinedButton.icon(
                                     onPressed: _openInExternalBrowser,
-                                    icon: Icon(Icons.open_in_browser, size: 16.r, color: Colors.white),
+                                    icon: Icon(
+                                      Icons.open_in_browser,
+                                      size: 16.r,
+                                      color: Colors.white,
+                                    ),
                                     label: Text(
                                       "Browser",
-                                      style: AppTextStyles.poppinsMedium.copyWith(
-                                        color: Colors.white,
-                                        fontSize: 12.sp,
-                                      ),
+                                      style: AppTextStyles.poppinsMedium
+                                          .copyWith(
+                                            color: Colors.white,
+                                            fontSize: 12.sp,
+                                          ),
                                     ),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: Colors.white,
-                                      side: const BorderSide(color: Colors.white38),
+                                      side: const BorderSide(
+                                        color: Colors.white38,
+                                      ),
                                       padding: EdgeInsets.symmetric(
                                         horizontal: 12.w,
                                         vertical: 6.h,
                                       ),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8.r),
+                                        borderRadius: BorderRadius.circular(
+                                          8.r,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -522,7 +544,9 @@ class _WorkoutVideoPlayerScreenState extends State<WorkoutVideoPlayerScreen> {
                             color: AppColor.customPurple.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8.r),
                             border: Border.all(
-                              color: AppColor.customPurple.withValues(alpha: 0.4),
+                              color: AppColor.customPurple.withValues(
+                                alpha: 0.4,
+                              ),
                             ),
                           ),
                           child: Row(
