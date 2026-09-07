@@ -97,6 +97,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     duration: '${challenge.estimatedDuration} min',
                     calories: '${challenge.estimatedCalories} kcal',
                     exercises: '${challenge.exercises.length} exercises',
+                    showFavorite: false,
                     onTap: () async {
                       Get.dialog(
                         const Center(

@@ -13,6 +13,9 @@ class TrainingOfTheDayCard extends StatelessWidget {
   final String calories;
   final String exercises;
   final VoidCallback ontap;
+  final bool isFavorite;
+  final VoidCallback? onFavoriteToggle;
+  final bool showFavorite;
 
   const TrainingOfTheDayCard({
     super.key,
@@ -23,6 +26,9 @@ class TrainingOfTheDayCard extends StatelessWidget {
     this.exercises = "5 Exercises",
     required this.headtitle,
     required this.ontap,
+    this.isFavorite = false,
+    this.onFavoriteToggle,
+    this.showFavorite = false,
   });
 
   @override
@@ -108,8 +114,25 @@ class TrainingOfTheDayCard extends StatelessWidget {
                           Icons.fitness_center_outlined,
                           exercises,
                         ),
-                        // Adding a small star icon for aesthetic completion (top right star from reference image context)
-                        // Icon(Icons.star, color: AppColor.customPurple, size: 18.sp),
+                        // Star toggle button (only visible when showFavorite && onFavoriteToggle != null)
+                        if (showFavorite && onFavoriteToggle != null)
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onFavoriteToggle,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 4.w,
+                                vertical: 2.h,
+                              ),
+                              child: Icon(
+                                Icons.star,
+                                color: isFavorite
+                                    ? AppColor.customPurple
+                                    : Colors.white70,
+                                size: 20.sp,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],

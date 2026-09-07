@@ -11,14 +11,12 @@ import 'package:kenzeno/app/widgets/backbutton_widget.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
 import '../../../widgets/daytrainningcard.dart';
-import '../../home/controllers/searchcontroller.dart';
 import '../../setting/widgets/trainnigstep.dart';
 import '../controllers/workoutcontroller.dart';
 
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
 
 class Workout extends StatelessWidget {
-  final SearchController controller = Get.find();
   Workout({super.key});
 
   Widget _buildTabBar(WorkoutController controller) {
@@ -69,7 +67,6 @@ class Workout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final WorkoutController controller = Get.put(WorkoutController());
-    final SearchController2 searchController=Get.find();
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -129,11 +126,16 @@ class Workout extends StatelessWidget {
                         imagePath: mainWorkout.image?.isNotEmpty == true
                             ? mainWorkout.image!
                             : (Get.isRegistered<ProfileController>()
-                                ? Get.find<ProfileController>().activeCoachImagePath
-                                : ImageAssets.img_12),
+                                  ? Get.find<ProfileController>()
+                                        .activeCoachImagePath
+                                  : ImageAssets.img_12),
                         duration: mainWorkout.estimatedDuration,
                         calories: mainWorkout.estimatedCalories,
                         exercises: "${mainWorkout.exerciseCount} Exercises",
+                        showFavorite: true,
+                        isFavorite: mainWorkout.isFavorite,
+                        onFavoriteToggle: () =>
+                            controller.toggleFavorite(mainWorkout.id),
                         ontap: () =>
                             controller.loadWorkoutDetail(mainWorkout.id),
                       ),
@@ -175,14 +177,13 @@ class Workout extends StatelessWidget {
                             workout.image != null && workout.image!.isNotEmpty
                             ? workout.image!
                             : (Get.isRegistered<ProfileController>()
-                                ? Get.find<ProfileController>().activeCoachImagePath
-                                : ImageAssets.img_12),
+                                  ? Get.find<ProfileController>()
+                                        .activeCoachImagePath
+                                  : ImageAssets.img_12),
                         type: 'Workout',
                         isFavorite: workout.isFavorite,
-                        onFavoriteToggle: () => searchController.toggleFavorite(
-                          contentType: 'workoutvideo',
-                          id: workout.id,
-                        ),
+                        onFavoriteToggle: () =>
+                            controller.toggleFavorite(workout.id),
                         isVideo: false,
                         onTap: () => controller.loadWorkoutDetail(workout.id),
                       ),

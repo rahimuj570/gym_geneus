@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:kenzeno/app/modules/workout/views/workoutdetails.dart';
 import 'package:kenzeno/app/res/colors/colors.dart';
 
+import 'package:kenzeno/app/modules/home/service/home_service.dart';
 import '../model/workoutmodel.dart';
 import '../services/workout_services.dart';
 import 'package:toastification/toastification.dart';
@@ -11,6 +12,9 @@ import 'package:kenzeno/app/res/fonts/textstyle.dart';
 
 class WorkoutController extends GetxController {
   final WorkoutService _service = Get.find<WorkoutService>();
+  final HomeService _homeService = Get.isRegistered<HomeService>()
+      ? Get.find<HomeService>()
+      : Get.put(HomeService());
 
   // Tabs
   var selectedTab = 'Beginner'.obs;
@@ -29,6 +33,37 @@ class WorkoutController extends GetxController {
 
   void selectTab(String tab) {
     selectedTab.value = tab;
+  }
+
+  Future<void> toggleFavorite(int workoutId) async {
+    _applyLocalFavoriteToggle(workoutId);
+
+    try {
+      final success = await _homeService.toggleFavorite(
+        contentType: 'userworkout',
+        objectId: workoutId,
+      );
+
+      if (!success) {
+        _applyLocalFavoriteToggle(workoutId);
+      }
+    } catch (e) {
+      _applyLocalFavoriteToggle(workoutId);
+    }
+  }
+
+  void _applyLocalFavoriteToggle(int workoutId) {
+    workoutsByDifficulty.forEach((difficulty, list) {
+      final index = list.indexWhere((w) => w.id == workoutId);
+      if (index != -1) {
+        final updated =
+            list[index].copyWith(isFavorite: !list[index].isFavorite);
+        final newList = List<Workout>.from(list);
+        newList[index] = updated;
+        workoutsByDifficulty[difficulty] = newList;
+      }
+    });
+    workoutsByDifficulty.refresh();
   }
 
   // Load all workouts grouped by difficulty

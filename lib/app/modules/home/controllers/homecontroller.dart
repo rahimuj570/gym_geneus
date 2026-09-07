@@ -486,6 +486,7 @@ class HomeController extends GetxController {
       if (index != -1) {
         final article = articles[index];
         articles[index] = article.copyWith(isFavorite: !article.isFavorite);
+        articles.refresh();
       }
       if (selectedArticle.value != null && selectedArticle.value!.id == id) {
         selectedArticle.value = selectedArticle.value!.copyWith(
@@ -496,18 +497,23 @@ class HomeController extends GetxController {
       final index = recommendedWorkouts.indexWhere((w) => w.id == id);
       if (index != -1) {
         final workout = recommendedWorkouts[index];
-        recommendedWorkouts[index] = workout.copyWith(isFavorite: !workout.isFavorite);
+        recommendedWorkouts[index] =
+            workout.copyWith(isFavorite: !workout.isFavorite);
+        recommendedWorkouts.refresh();
       }
     } else if (contentType == 'workoutvideo') {
       final wIndex = recommendedWorkouts.indexWhere((w) => w.id == id);
       if (wIndex != -1) {
         final workout = recommendedWorkouts[wIndex];
-        recommendedWorkouts[wIndex] = workout.copyWith(isFavorite: !workout.isFavorite);
+        recommendedWorkouts[wIndex] =
+            workout.copyWith(isFavorite: !workout.isFavorite);
+        recommendedWorkouts.refresh();
       }
       final vIndex = workoutVideos.indexWhere((v) => v.id == id);
       if (vIndex != -1) {
         final video = workoutVideos[vIndex];
         workoutVideos[vIndex] = video.copyWith(isFavorite: !video.isFavorite);
+        workoutVideos.refresh();
       }
     }
   }

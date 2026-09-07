@@ -17,6 +17,7 @@ class TrainingCardWidget extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
+  final bool showFavorite;
 
   const TrainingCardWidget({
     super.key,
@@ -31,6 +32,7 @@ class TrainingCardWidget extends StatelessWidget {
     this.onTap,
     this.isFavorite = false,
     this.onFavoriteToggle,
+    this.showFavorite = true,
   });
 
   // Check if the card is for an Article
@@ -157,8 +159,8 @@ class TrainingCardWidget extends StatelessWidget {
               image: imagePath.isEmpty
                   ? const AssetImage(ImageAssets.img_3) as ImageProvider
                   : (imagePath.startsWith('http')
-                      ? NetworkImage(imagePath)
-                      : AssetImage(imagePath) as ImageProvider),
+                        ? NetworkImage(imagePath)
+                        : AssetImage(imagePath) as ImageProvider),
               fit: BoxFit.cover,
             ),
           ),
@@ -181,30 +183,34 @@ class TrainingCardWidget extends StatelessWidget {
             ),
           ),
 
-        // Star Icon Positioned
-        Positioned(
-          top: 6.h,
-          right: 6.w,
-          child: GestureDetector(
-            onTap: onFavoriteToggle,
-            child: Container(
-              padding: EdgeInsets.all(4.r),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12.r),
-                color: AppColor.black50,
-              ),
-              child: SvgPicture.asset(
-                ImageAssets.svg33,
-                height: 18.sp,
-                width: 18.sp,
-                colorFilter: ColorFilter.mode(
-                  isFavorite ? AppColor.customPurple : Colors.white70,
-                  BlendMode.srcIn,
+        // Star Icon Positioned (hidden for challenges)
+        if (showFavorite && onFavoriteToggle != null)
+          Positioned(
+            top: 4.h,
+            right: 4.w,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                onFavoriteToggle?.call();
+              },
+              child: Container(
+                padding: EdgeInsets.all(6.r),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12.r),
+                  color: AppColor.black50,
+                ),
+                child: SvgPicture.asset(
+                  ImageAssets.svg33,
+                  height: 18.sp,
+                  width: 18.sp,
+                  colorFilter: ColorFilter.mode(
+                    isFavorite ? AppColor.customPurple : Colors.white70,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

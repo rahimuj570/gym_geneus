@@ -96,7 +96,9 @@ class SearchController2 extends GetxController
       final index = articleResults.indexWhere((a) => a.id == id);
       if (index != -1) {
         final article = articleResults[index];
-        articleResults[index] = article.copyWith(isFavorite: !article.isFavorite);
+        articleResults[index] =
+            article.copyWith(isFavorite: !article.isFavorite);
+        articleResults.refresh();
       }
     } else if (contentType == 'workout' ||
         contentType == 'userworkout' ||
@@ -104,7 +106,9 @@ class SearchController2 extends GetxController
       final index = workoutResults.indexWhere((w) => w.id == id);
       if (index != -1) {
         final workout = workoutResults[index];
-        workoutResults[index] = workout.copyWith(isFavorite: !workout.isFavorite);
+        workoutResults[index] =
+            workout.copyWith(isFavorite: !workout.isFavorite);
+        workoutResults.refresh();
       }
     }
   }

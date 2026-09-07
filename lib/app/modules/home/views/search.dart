@@ -116,15 +116,17 @@ class SearchScreen extends StatelessWidget {
             color: AppColor.purple9662F1,
             size: 24.sp,
           ),
-          suffixIcon: Obx(() => controller.searchBarText.value.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.white),
-                  onPressed: () {
-                    controller.searchController.clear();
-                    controller.performSearch("");
-                  },
-                )
-              : const SizedBox.shrink()),
+          suffixIcon: Obx(
+            () => controller.searchBarText.value.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.white),
+                    onPressed: () {
+                      controller.searchController.clear();
+                      controller.performSearch("");
+                    },
+                  )
+                : const SizedBox.shrink(),
+          ),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: 12.h),
         ),
@@ -186,7 +188,11 @@ class SearchScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.search_off, size: 64.sp, color: AppColor.gray9CA3AF),
+                      Icon(
+                        Icons.search_off,
+                        size: 64.sp,
+                        color: AppColor.gray9CA3AF,
+                      ),
                       SizedBox(height: 16.h),
                       Text(
                         "No results found",
@@ -206,7 +212,10 @@ class SearchScreen extends StatelessWidget {
               children: [
                 if (workouts.isNotEmpty) ...[
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 10.h,
+                    ),
                     child: Text(
                       "Workouts",
                       style: AppTextStyles.poppinsBold.copyWith(
@@ -215,31 +224,39 @@ class SearchScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  ...workouts.map((workout) => TrainingCardWidget(
-                        title: workout.name,
-                        duration: workout.estimatedDuration,
-                        calories: workout.estimatedCalories,
-                        exercises: "${workout.exerciseCount} Exercises",
-                        imagePath: (workout.image != null && workout.image!.isNotEmpty)
-                            ? workout.image!
-                            : (Get.isRegistered<ProfileController>()
-                                ? Get.find<ProfileController>().activeCoachImagePath
+                  ...workouts.map(
+                    (workout) => TrainingCardWidget(
+                      title: workout.name,
+                      duration: workout.estimatedDuration,
+                      calories: workout.estimatedCalories,
+                      exercises: "${workout.exerciseCount} Exercises",
+                      imagePath:
+                          (workout.image != null && workout.image!.isNotEmpty)
+                          ? workout.image!
+                          : (Get.isRegistered<ProfileController>()
+                                ? Get.find<ProfileController>()
+                                      .activeCoachImagePath
                                 : ImageAssets.img_12),
-                        type: 'workout', // Changed from 'video' to match API or keep as per UI needs
-                        isVideo: false,
-                        isFavorite: workout.isFavorite,
-                        onFavoriteToggle: () => controller.toggleFavorite(
-                          contentType: 'workoutvideo',
-                          id: workout.id,
-                        ),
-                        onTap: () {
-                          workoutController.loadWorkoutDetail(workout.id);
-                        },
-                      )),
+                      type:
+                          'workout', // Changed from 'video' to match API or keep as per UI needs
+                      isVideo: false,
+                      isFavorite: workout.isFavorite,
+                      onFavoriteToggle: () => controller.toggleFavorite(
+                        contentType: 'userworkout',
+                        id: workout.id,
+                      ),
+                      onTap: () {
+                        workoutController.loadWorkoutDetail(workout.id);
+                      },
+                    ),
+                  ),
                 ],
                 if (articles.isNotEmpty) ...[
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 10.h,
+                    ),
                     child: Text(
                       "Articles",
                       style: AppTextStyles.poppinsBold.copyWith(
@@ -248,25 +265,29 @@ class SearchScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  ...articles.map((article) => TrainingCardWidget(
-                        title: article.title,
-                        subtitle: article.content,
-                        imagePath: (article.mediaUrl != null && article.mediaUrl!.isNotEmpty)
-                            ? article.mediaUrl!
-                            : ImageAssets.img_1,
-                        type: 'article',
-                        isFavorite: article.isFavorite,
-                        onFavoriteToggle: () => controller.toggleFavorite(
-                          contentType: 'article',
-                          id: article.id,
-                        ),
-                        onTap: () {
-                          // Navigation to article details if available
-                        },
-                        duration: '',
-                        calories: '',
-                        exercises: '',
-                      )),
+                  ...articles.map(
+                    (article) => TrainingCardWidget(
+                      title: article.title,
+                      subtitle: article.content,
+                      imagePath:
+                          (article.mediaUrl != null &&
+                              article.mediaUrl!.isNotEmpty)
+                          ? article.mediaUrl!
+                          : ImageAssets.img_1,
+                      type: 'article',
+                      isFavorite: article.isFavorite,
+                      onFavoriteToggle: () => controller.toggleFavorite(
+                        contentType: 'article',
+                        id: article.id,
+                      ),
+                      onTap: () {
+                        // Navigation to article details if available
+                      },
+                      duration: '',
+                      calories: '',
+                      exercises: '',
+                    ),
+                  ),
                 ],
                 SizedBox(height: 50.h),
               ],
