@@ -190,32 +190,32 @@ class HomeScreen extends StatelessWidget {
               ),
             );
           }),
-          GestureDetector(
-            onTap: () => Get.to(
-              () => Subscription(),
-              transition: Transition.rightToLeft,
-            ),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.diamond, color: AppColor.customPurple, size: 20.sp),
-                  SizedBox(width: 8.w),
-                  Text(
-                    '50% OFF',
-                    style: AppTextStyles.poppinsBold.copyWith(
-                      fontSize: 14.sp,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // GestureDetector(
+          //   onTap: () => Get.to(
+          //     () => Subscription(),
+          //     transition: Transition.rightToLeft,
+          //   ),
+          //   child: Container(
+          //     padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          //     decoration: BoxDecoration(
+          //       color: Colors.white,
+          //       borderRadius: BorderRadius.circular(20.r),
+          //     ),
+          //     child: Row(
+          //       children: [
+          //         Icon(Icons.diamond, color: AppColor.customPurple, size: 20.sp),
+          //         SizedBox(width: 8.w),
+          //         Text(
+          //           '50% OFF',
+          //           style: AppTextStyles.poppinsBold.copyWith(
+          //             fontSize: 14.sp,
+          //             color: Colors.black,
+          //           ),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );
@@ -344,10 +344,8 @@ class HomeScreen extends StatelessWidget {
                 label: 'Workout',
                 iconColor: isActive ? AppColor.customPurple : AppColor.white,
                 textColor: isActive ? AppColor.customPurple : AppColor.white,
-                onTap: () => Get.to(
-                  () => Workout(),
-                  transition: Transition.rightToLeft,
-                ),
+                onTap: () =>
+                    Get.to(() => Workout(), transition: Transition.rightToLeft),
               );
             }),
             _buildDivider(),
@@ -537,9 +535,7 @@ class HomeScreen extends StatelessWidget {
                     child: SizedBox(
                       height: 60.h,
                       child: Stack(
-                        children: List.generate(currentImages.length, (
-                          index,
-                        ) {
+                        children: List.generate(currentImages.length, (index) {
                           return Positioned(
                             left: index * 50.w,
                             child: Container(
@@ -722,16 +718,18 @@ class HomeScreen extends StatelessWidget {
                     title: workout.name,
                     duration: workout.estimatedDuration,
                     exercises: "${workout.exerciseCount} exercises",
-                    imagePath: (workout.image != null && workout.image!.isNotEmpty)
+                    imagePath:
+                        (workout.image != null && workout.image!.isNotEmpty)
                         ? workout.image!
                         : profileController.activeCoachImagePath,
                     isFavorite: workout.isFavorite,
                     onFavoriteToggle: () => controller.toggleFavorite(
-                      contentType: 'workout',
+                      contentType: 'userworkout',
                       id: workout.id,
                     ),
                     onTap: () {
-                      final workoutController = Get.isRegistered<WorkoutController>()
+                      final workoutController =
+                          Get.isRegistered<WorkoutController>()
                           ? Get.find<WorkoutController>()
                           : Get.put(WorkoutController());
                       workoutController.loadWorkoutDetail(workout.id);
@@ -786,7 +784,8 @@ class HomeScreen extends StatelessWidget {
         ),
         SizedBox(height: 16.h),
         Obx(() {
-          final isDobMissing = profileController.profile.value == null ||
+          final isDobMissing =
+              profileController.profile.value == null ||
               profileController.profile.value?.dateOfBirth == null ||
               profileController.profile.value!.dateOfBirth!.trim().isEmpty;
 
@@ -801,7 +800,10 @@ class HomeScreen extends StatelessWidget {
                   ),
                   child: Container(
                     margin: EdgeInsets.only(left: 10.w, right: 10.w, top: 8.h),
-                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 8.h,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColor.customPurple.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12.r),
@@ -847,7 +849,9 @@ class HomeScreen extends StatelessWidget {
                 SizedBox(
                   height: 240.h,
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColor.customPurple),
+                    child: CircularProgressIndicator(
+                      color: AppColor.customPurple,
+                    ),
                   ),
                 )
               else if (controller.articles.isEmpty)
@@ -895,32 +899,32 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                   child: hasUrl
                                       ? (mediaUrl.startsWith('http')
-                                          ? Image.network(
-                                              mediaUrl,
-                                              width: 160.w,
-                                              height: 130.h,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  Image.asset(
-                                                ImageAssets.img_3,
+                                            ? Image.network(
+                                                mediaUrl,
                                                 width: 160.w,
                                                 height: 130.h,
                                                 fit: BoxFit.cover,
-                                              ),
-                                            )
-                                          : Image.asset(
-                                              mediaUrl,
-                                              width: 160.w,
-                                              height: 130.h,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  Image.asset(
-                                                ImageAssets.img_3,
+                                                errorBuilder: (_, __, ___) =>
+                                                    Image.asset(
+                                                      ImageAssets.img_3,
+                                                      width: 160.w,
+                                                      height: 130.h,
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                              )
+                                            : Image.asset(
+                                                mediaUrl,
                                                 width: 160.w,
                                                 height: 130.h,
                                                 fit: BoxFit.cover,
-                                              ),
-                                            ))
+                                                errorBuilder: (_, __, ___) =>
+                                                    Image.asset(
+                                                      ImageAssets.img_3,
+                                                      width: 160.w,
+                                                      height: 130.h,
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                              ))
                                       : Image.asset(
                                           ImageAssets.img_3,
                                           width: 160.w,

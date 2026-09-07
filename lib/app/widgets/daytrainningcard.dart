@@ -20,7 +20,9 @@ class TrainingOfTheDayCard extends StatelessWidget {
     this.imagePath = ImageAssets.img_20,
     this.duration = "45 Minutes",
     this.calories = "1450 Kcal",
-    this.exercises = "5 Exercises", required this.headtitle, required this.ontap,
+    this.exercises = "5 Exercises",
+    required this.headtitle,
+    required this.ontap,
   });
 
   @override
@@ -50,11 +52,16 @@ class TrainingOfTheDayCard extends StatelessWidget {
               Align(
                 alignment: Alignment.topRight,
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(20.w), // Rounded corner on bottom-left of the pill
+                      bottomLeft: Radius.circular(
+                        20.w,
+                      ), // Rounded corner on bottom-left of the pill
                     ),
                   ),
                   child: Text(
@@ -69,7 +76,12 @@ class TrainingOfTheDayCard extends StatelessWidget {
 
               // 2. BOTTOM SECTION (Title and Stats Overlay)
               Container(
-                padding: EdgeInsets.only(left: 16.w, top: 10.h, bottom: 10.h, right: 16.w),
+                padding: EdgeInsets.only(
+                  left: 16.w,
+                  top: 10.h,
+                  bottom: 10.h,
+                  right: 16.w,
+                ),
                 color: AppColor.black50, // Semi-transparent black overlay
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,10 +100,16 @@ class TrainingOfTheDayCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildStatItem(Icons.watch_later_outlined, duration),
-                        _buildStatItem(Icons.local_fire_department_outlined, calories),
-                        _buildStatItem(Icons.fitness_center_outlined, exercises),
+                        _buildStatItem(
+                          Icons.local_fire_department_outlined,
+                          calories,
+                        ),
+                        _buildStatItem(
+                          Icons.fitness_center_outlined,
+                          exercises,
+                        ),
                         // Adding a small star icon for aesthetic completion (top right star from reference image context)
-                        Icon(Icons.star, color: AppColor.customPurple, size: 18.sp),
+                        // Icon(Icons.star, color: AppColor.customPurple, size: 18.sp),
                       ],
                     ),
                   ],
@@ -122,4 +140,3 @@ class TrainingOfTheDayCard extends StatelessWidget {
     );
   }
 }
-

@@ -91,16 +91,18 @@ class Recommendation extends StatelessWidget {
                       title: workout.name,
                       duration: workout.estimatedDuration,
                       exercises: "${workout.exerciseCount} exercises",
-                      imagePath: (workout.image != null && workout.image!.isNotEmpty)
+                      imagePath:
+                          (workout.image != null && workout.image!.isNotEmpty)
                           ? workout.image!
                           : profileController.activeCoachImagePath,
                       isFavorite: workout.isFavorite,
                       onFavoriteToggle: () => controller.toggleFavorite(
-                        contentType: 'workout',
+                        contentType: 'userworkout',
                         id: workout.id,
                       ),
                       onTap: () {
-                        final workoutController = Get.isRegistered<WorkoutController>()
+                        final workoutController =
+                            Get.isRegistered<WorkoutController>()
                             ? Get.find<WorkoutController>()
                             : Get.put(WorkoutController());
                         workoutController.loadWorkoutDetail(workout.id);

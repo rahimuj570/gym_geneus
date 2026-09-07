@@ -71,49 +71,41 @@ class SearchController2 extends GetxController
     required String contentType,
     required int id,
   }) async {
+    // 1. Optimistically toggle state immediately
+    _applyFavoriteToggle(contentType: contentType, id: id);
+
     try {
       final success = await _homeService.toggleFavorite(
         contentType: contentType,
         objectId: id,
       );
-print(success);
-      if (success) {
-        if (contentType == 'article') {
-          final index = articleResults.indexWhere((a) => a.id == id);
-          if (index != -1) {
-            final article = articleResults[index];
-            articleResults[index] = Article(
-              id: article.id,
-              title: article.title,
-              content: article.content,
-              mediaUrl: article.mediaUrl,
-              category: article.category,
-              createdBy: article.createdBy,
-              createdAt: article.createdAt,
-              isFavorite: !article.isFavorite,
-            );
-          }
-        } else if (contentType == 'workout') {
-          final index = workoutResults.indexWhere((w) => w.id == id);
-          if (index != -1) {
-            final workout = workoutResults[index];
-            workoutResults[index] = Workout(
-              id: workout.id,
-              name: workout.name,
-              description: workout.description,
-              image: workout.image,
-              estimatedDuration: workout.estimatedDuration,
-              estimatedCalories: workout.estimatedCalories,
-              exerciseCount: workout.exerciseCount,
-              difficulty: workout.difficulty,
-              isFavorite: !workout.isFavorite,
-              exercises: workout.exercises,
-            );
-          }
-        }
+
+      // 2. If API fails, revert the state back
+      if (!success) {
+        _applyFavoriteToggle(contentType: contentType, id: id);
       }
     } catch (e) {
       print("Toggle favorite error: $e");
+      // Revert state back on exception
+      _applyFavoriteToggle(contentType: contentType, id: id);
+    }
+  }
+
+  void _applyFavoriteToggle({required String contentType, required int id}) {
+    if (contentType == 'article') {
+      final index = articleResults.indexWhere((a) => a.id == id);
+      if (index != -1) {
+        final article = articleResults[index];
+        articleResults[index] = article.copyWith(isFavorite: !article.isFavorite);
+      }
+    } else if (contentType == 'workout' ||
+        contentType == 'userworkout' ||
+        contentType == 'workoutvideo') {
+      final index = workoutResults.indexWhere((w) => w.id == id);
+      if (index != -1) {
+        final workout = workoutResults[index];
+        workoutResults[index] = workout.copyWith(isFavorite: !workout.isFavorite);
+      }
     }
   }
 

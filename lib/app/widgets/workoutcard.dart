@@ -83,7 +83,10 @@ class WorkoutCardWidget extends StatelessWidget {
                       ImageAssets.svg33,
                       height: 16.r,
                       width: 16.r,
-                      color: isFavorite ? AppColor.customPurple : Colors.white,
+                      colorFilter: ColorFilter.mode(
+                        isFavorite ? AppColor.customPurple : Colors.white,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 ),

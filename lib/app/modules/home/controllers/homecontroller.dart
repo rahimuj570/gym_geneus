@@ -275,50 +275,79 @@ class HomeController extends GetxController {
     required String contentType,
     required int id,
   }) async {
+    // 1. Optimistically toggle state immediately before API completes
+    _applyFavoriteToggle(contentType: contentType, id: id);
+
     try {
       final success = await _service.toggleFavorite(
         contentType: contentType,
         objectId: id,
       );
 
-      if (success) {
-        if (contentType == 'article') {
-          final index = articles.indexWhere((a) => a.id == id);
-          if (index != -1) {
-            final article = articles[index];
-            articles[index] = Article(
-              id: article.id,
-              title: article.title,
-              content: article.content,
-              mediaUrl: article.mediaUrl, // Article model uses mediaUrl
-              category: article.category,
-              createdBy: article.createdBy,
-              createdAt: article.createdAt,
-              isFavorite: !article.isFavorite,
-            );
-          }
-        } else if (contentType == 'workout') {
-          final index = recommendedWorkouts.indexWhere((w) => w.id == id);
-          if (index != -1) {
-            final workout = recommendedWorkouts[index];
-            recommendedWorkouts[index] = Workout(
-              id: workout.id,
-              name: workout.name,
-              description: workout.description,
-              image: workout.image,
-              estimatedDuration: workout.estimatedDuration,
-              estimatedCalories: workout.estimatedCalories,
-              exerciseCount: workout.exerciseCount,
-              difficulty: workout.difficulty,
-              isFavorite: !workout.isFavorite,
-              exercises: workout.exercises,
-            );
-          }
-        }
+      // 2. If API fails, revert the state back and show error notification
+      if (!success) {
+        _applyFavoriteToggle(contentType: contentType, id: id);
+        _showFavoriteErrorToast();
       }
     } catch (e) {
       print("Toggle favorite error: $e");
+      // Revert state back on exception
+      _applyFavoriteToggle(contentType: contentType, id: id);
+      _showFavoriteErrorToast();
     }
+  }
+
+  void _applyFavoriteToggle({required String contentType, required int id}) {
+    if (contentType == 'article') {
+      final index = articles.indexWhere((a) => a.id == id);
+      if (index != -1) {
+        final article = articles[index];
+        articles[index] = article.copyWith(isFavorite: !article.isFavorite);
+      }
+      if (selectedArticle.value != null && selectedArticle.value!.id == id) {
+        selectedArticle.value = selectedArticle.value!.copyWith(
+          isFavorite: !selectedArticle.value!.isFavorite,
+        );
+      }
+    } else if (contentType == 'workout' || contentType == 'userworkout') {
+      final index = recommendedWorkouts.indexWhere((w) => w.id == id);
+      if (index != -1) {
+        final workout = recommendedWorkouts[index];
+        recommendedWorkouts[index] = workout.copyWith(isFavorite: !workout.isFavorite);
+      }
+    } else if (contentType == 'workoutvideo') {
+      final wIndex = recommendedWorkouts.indexWhere((w) => w.id == id);
+      if (wIndex != -1) {
+        final workout = recommendedWorkouts[wIndex];
+        recommendedWorkouts[wIndex] = workout.copyWith(isFavorite: !workout.isFavorite);
+      }
+      final vIndex = workoutVideos.indexWhere((v) => v.id == id);
+      if (vIndex != -1) {
+        final video = workoutVideos[vIndex];
+        workoutVideos[vIndex] = video.copyWith(isFavorite: !video.isFavorite);
+      }
+    }
+  }
+
+  void _showFavoriteErrorToast() {
+    toastification.show(
+      type: ToastificationType.error,
+      style: ToastificationStyle.fillColored,
+      primaryColor: Colors.red,
+      foregroundColor: Colors.white,
+      title: Text(
+        "Error",
+        style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+      ),
+      description: Text(
+        "Failed to update favorite status",
+        style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+      ),
+      alignment: Alignment.topRight,
+      autoCloseDuration: const Duration(seconds: 3),
+      borderRadius: BorderRadius.circular(12),
+      showProgressBar: true,
+    );
   }
 
   // Your dummy data — unchanged

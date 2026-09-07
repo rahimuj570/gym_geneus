@@ -109,6 +109,11 @@ class ArticlePage extends StatelessWidget {
                     calories: '0 kcal',
                     exercises: '0 exercises',
                     isVideo: false,
+                    isFavorite: article.isFavorite,
+                    onFavoriteToggle: () => controller.toggleFavorite(
+                      contentType: 'article',
+                      id: article.id,
+                    ),
                     onTap: () {
                       Get.to(
                         () => const ArticleDetailPage(),

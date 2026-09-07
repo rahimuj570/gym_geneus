@@ -197,7 +197,10 @@ class TrainingCardWidget extends StatelessWidget {
                 ImageAssets.svg33,
                 height: 18.sp,
                 width: 18.sp,
-                color: isFavorite ? AppColor.customPurple : Colors.white70,
+                colorFilter: ColorFilter.mode(
+                  isFavorite ? AppColor.customPurple : Colors.white70,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
           ),

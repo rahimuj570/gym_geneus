@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:kenzeno/app/modules/home/models/article.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
 import '../../../res/assets/asset.dart';
@@ -47,7 +48,7 @@ class ArticleDetailPage extends StatelessWidget {
 
         return CustomScrollView(
           slivers: [
-            _buildSliverAppBar(context, art.title, publishDate, art.mediaUrl),
+            _buildSliverAppBar(context, art, controller),
             SliverList(
               delegate: SliverChildListDelegate([
                 _buildArticleDetails(art.content),
@@ -65,10 +66,13 @@ class ArticleDetailPage extends StatelessWidget {
   // ← Your EXACT SliverAppBar (only data changed to dynamic)
   Widget _buildSliverAppBar(
     BuildContext context,
-    String title,
-    String publishDate,
-    String? mediaUrl,
+    Article article,
+    HomeController controller,
   ) {
+    final title = article.title;
+    final publishDate = article.createdAt.toLocal().toString().split(' ')[0];
+    final mediaUrl = article.mediaUrl;
+
     return SliverAppBar(
       automaticallyImplyLeading: false,
       backgroundColor: AppColor.black111214,
@@ -187,11 +191,22 @@ class ArticleDetailPage extends StatelessWidget {
                 Positioned(
                   top: 15.h,
                   right: 15.w,
-                  child: SvgPicture.asset(
-                    ImageAssets.svg33,
-                    height: 30.r,
-                    width: 30.r,
-                    color: Colors.white,
+                  child: GestureDetector(
+                    onTap: () => controller.toggleFavorite(
+                      contentType: 'article',
+                      id: article.id,
+                    ),
+                    child: SvgPicture.asset(
+                      ImageAssets.svg33,
+                      height: 30.r,
+                      width: 30.r,
+                      colorFilter: ColorFilter.mode(
+                        article.isFavorite
+                            ? AppColor.customPurple
+                            : Colors.white,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                   ),
                 ),
               ],

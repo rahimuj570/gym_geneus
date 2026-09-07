@@ -84,4 +84,30 @@ class Workout {
           : null,
     );
   }
+
+  Workout copyWith({
+    int? id,
+    String? name,
+    String? description,
+    String? image,
+    String? estimatedDuration,
+    String? estimatedCalories,
+    int? exerciseCount,
+    String? difficulty,
+    bool? isFavorite,
+    List<UserExercise>? exercises,
+  }) {
+    return Workout(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      image: image ?? this.image,
+      estimatedDuration: estimatedDuration ?? this.estimatedDuration,
+      estimatedCalories: estimatedCalories ?? this.estimatedCalories,
+      exerciseCount: exerciseCount ?? this.exerciseCount,
+      difficulty: difficulty ?? this.difficulty,
+      isFavorite: isFavorite ?? this.isFavorite,
+      exercises: exercises ?? this.exercises,
+    );
+  }
 }

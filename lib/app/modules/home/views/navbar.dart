@@ -13,8 +13,10 @@ import '../../workout/views/workout.dart';
 import '../controllers/navcontroller.dart';
 import '../../home/views/home.dart';
 
+import 'package:flutter/services.dart';
+
 class Navbar extends StatelessWidget {
-  Navbar({Key? key}) : super(key: key);
+  Navbar({super.key});
 
   final NavController controller = Get.find();
 
@@ -35,10 +37,123 @@ class Navbar extends StatelessWidget {
     ImageAssets.svg22,
   ];
 
+  Future<bool?> _showExitConfirmationDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppColor.gray1F2937,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(14.r),
+                  decoration: BoxDecoration(
+                    color: AppColor.customPurple.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.exit_to_app_rounded,
+                    color: AppColor.customPurple,
+                    size: 32.sp,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  "Exit App",
+                  style: AppTextStyles.poppinsBold.copyWith(
+                    color: Colors.white,
+                    fontSize: 18.sp,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  "Are you sure you want to exit Kenzeno?",
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.poppinsRegular.copyWith(
+                    color: AppColor.gray9CA3AF,
+                    fontSize: 13.sp,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white24),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                        ),
+                        child: Text(
+                          "Cancel",
+                          style: AppTextStyles.poppinsMedium.copyWith(
+                            color: Colors.white,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.customPurple,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                        ),
+                        child: Text(
+                          "Exit",
+                          style: AppTextStyles.poppinsBold.copyWith(
+                            color: Colors.white,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Obx(() => pages[controller.currentIndex.value]),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+
+        // If not on the Home tab, switch to the Home tab first
+        if (controller.currentIndex.value != 0) {
+          controller.currentIndex.value = 0;
+          return;
+        }
+
+        // When on Home tab, ask for exit confirmation
+        final shouldExit = await _showExitConfirmationDialog(context);
+        if (shouldExit == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: Obx(() => pages[controller.currentIndex.value]),
       bottomNavigationBar: Obx(
         () => Container(
           color: AppColor.customDarkGray,
@@ -108,6 +223,6 @@ class Navbar extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),);
   }
 }

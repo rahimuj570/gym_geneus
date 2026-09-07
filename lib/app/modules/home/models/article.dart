@@ -44,4 +44,26 @@ class Article {
       'is_favorite': isFavorite,
     };
   }
+
+  Article copyWith({
+    int? id,
+    String? title,
+    String? content,
+    String? mediaUrl,
+    String? category,
+    String? createdBy,
+    DateTime? createdAt,
+    bool? isFavorite,
+  }) {
+    return Article(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      mediaUrl: mediaUrl ?? this.mediaUrl,
+      category: category ?? this.category,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      isFavorite: isFavorite ?? this.isFavorite,
+    );
+  }
 }

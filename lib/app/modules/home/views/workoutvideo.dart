@@ -4,10 +4,11 @@ import 'package:get/get.dart';
 import 'package:kenzeno/app/modules/home/controllers/homecontroller.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
-import '../../../res/assets/asset.dart';
 import '../../../widgets/workoutcard.dart';
 
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
+
+import 'workoutvideoplayer.dart';
 
 class WorkoutvideoPage extends StatelessWidget {
   const WorkoutvideoPage({super.key});
@@ -91,7 +92,17 @@ class WorkoutvideoPage extends StatelessWidget {
                     exercises:
                         "Workout Video", // or "Full Body", "Beginner", etc.
                     imagePath: profileController.activeCoachImagePath,
-                    onTap: () {},
+                    isFavorite: video.isFavorite,
+                    onFavoriteToggle: () => controller.toggleFavorite(
+                      contentType: 'workoutvideo',
+                      id: video.id,
+                    ),
+                    onTap: () {
+                      Get.to(
+                        () => WorkoutVideoPlayerScreen(video: video),
+                        transition: Transition.rightToLeft,
+                      );
+                    },
                   );
                 },
               );
