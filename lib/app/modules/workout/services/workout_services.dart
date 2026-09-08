@@ -76,7 +76,38 @@ class WorkoutService extends GetxService {
     }
   }
 
-  Future<void> trackProgress({
+  Future<WorkoutProgressResponse?> getWorkoutProgress({
+    required int userWorkoutId,
+  }) async {
+    final uri = Uri.parse("${AppConstants.baseUrl}/workouts/track-progress/").replace(
+      queryParameters: {
+        "user_workout_id": userWorkoutId.toString(),
+      },
+    );
+
+    try {
+      final response = await ApiClient.get(uri, tag: 'Workout-GetProgress');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        if (data is Map<String, dynamic>) {
+          return WorkoutProgressResponse.fromJson(data);
+        }
+        return null;
+      } else if (response.statusCode == 404) {
+        return null;
+      } else if (response.statusCode == 401) {
+        throw Exception("Unauthorized – Please login again");
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print("Error fetching workout progress: $e");
+      return null;
+    }
+  }
+
+  Future<WorkoutProgressResponse?> trackProgress({
     required int userWorkoutId,
     int? userExerciseId, // optional – if tracking a specific exercise
   }) async {
@@ -94,8 +125,11 @@ class WorkoutService extends GetxService {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      // Success – optionally return parsed data
-      return;
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (data is Map<String, dynamic>) {
+        return WorkoutProgressResponse.fromJson(data);
+      }
+      return null;
     } else if (response.statusCode == 401) {
       throw Exception("Unauthorized – Please login again");
     } else if (response.statusCode == 400) {

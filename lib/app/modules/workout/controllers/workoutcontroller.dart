@@ -1,6 +1,7 @@
 // lib/controllers/workout_controller.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kenzeno/app/modules/home/controllers/homecontroller.dart';
 import 'package:kenzeno/app/modules/workout/views/workoutdetails.dart';
 import 'package:kenzeno/app/res/colors/colors.dart';
 
@@ -24,6 +25,8 @@ class WorkoutController extends GetxController {
   var workoutsByDifficulty = <String, List<Workout>>{}.obs;
   var isLoading = true.obs;
   var selectedWorkoutDetail = Rxn<Workout>();
+  var completedExerciseIds = <dynamic>[].obs;
+  var workoutProgress = Rxn<WorkoutProgressResponse>();
 
   @override
   void onInit() {
@@ -33,6 +36,16 @@ class WorkoutController extends GetxController {
 
   void selectTab(String tab) {
     selectedTab.value = tab;
+  }
+
+  bool isExerciseCompleted(int index, UserExercise exercise) {
+    if (completedExerciseIds.contains(exercise.id) ||
+        completedExerciseIds.contains(exercise.id.toString()) ||
+        completedExerciseIds.contains(index) ||
+        completedExerciseIds.contains(exercise.order)) {
+      return true;
+    }
+    return false;
   }
 
   Future<void> toggleFavorite(int workoutId) async {
@@ -56,8 +69,9 @@ class WorkoutController extends GetxController {
     workoutsByDifficulty.forEach((difficulty, list) {
       final index = list.indexWhere((w) => w.id == workoutId);
       if (index != -1) {
-        final updated =
-            list[index].copyWith(isFavorite: !list[index].isFavorite);
+        final updated = list[index].copyWith(
+          isFavorite: !list[index].isFavorite,
+        );
         final newList = List<Workout>.from(list);
         newList[index] = updated;
         workoutsByDifficulty[difficulty] = newList;
@@ -119,15 +133,46 @@ class WorkoutController extends GetxController {
     return list.length > 1 ? list.sublist(1) : [];
   }
 
+  Future<void> fetchWorkoutProgress(int userWorkoutId) async {
+    try {
+      final progressResult = await _service.getWorkoutProgress(
+        userWorkoutId: userWorkoutId,
+      );
+      if (progressResult != null) {
+        workoutProgress.value = progressResult;
+        if (progressResult.workoutProgress?.completedExercises != null) {
+          completedExerciseIds.assignAll(
+            progressResult.workoutProgress!.completedExercises,
+          );
+        }
+      }
+    } catch (e) {
+      print("Error fetching workout progress: $e");
+    }
+  }
+
   // Load full workout detail (with exercises) when user taps
   Future<void> loadWorkoutDetail(int workoutId) async {
     try {
       Get.dialog(
-        Center(child: CircularProgressIndicator()),
+        const Center(
+          child: CircularProgressIndicator(color: AppColor.customPurple),
+        ),
         barrierDismissible: false,
       );
+      completedExerciseIds.clear();
+      workoutProgress.value = null;
+
       final detail = await _service.fetchWorkoutDetail(workoutId);
       selectedWorkoutDetail.value = detail;
+
+      // Fetch latest workout progress from API
+      await fetchWorkoutProgress(workoutId);
+
+      if (completedExerciseIds.isEmpty && detail.progress?.completedExercises != null) {
+        completedExerciseIds.assignAll(detail.progress!.completedExercises);
+      }
+
       print(detail);
       Get.back(); // Dismiss the loading dialog
       Get.to(() => const WorkoutDetailsScreen());
@@ -154,7 +199,7 @@ class WorkoutController extends GetxController {
     }
   }
 
-  Future<void> trackWorkoutProgress({
+  Future<WorkoutProgressResponse?> trackWorkoutProgress({
     required int userWorkoutId,
     int? userExerciseId,
   }) async {
@@ -166,12 +211,30 @@ class WorkoutController extends GetxController {
         barrierDismissible: false,
       );
 
-      await _service.trackProgress(
+      final result = await _service.trackProgress(
         userWorkoutId: userWorkoutId,
         userExerciseId: userExerciseId,
       );
 
       Get.back(); // Dismiss the loading dialog
+
+      if (result != null) {
+        workoutProgress.value = result;
+        if (result.workoutProgress?.completedExercises != null) {
+          completedExerciseIds.assignAll(
+            result.workoutProgress!.completedExercises,
+          );
+        }
+      } else if (userExerciseId != null) {
+        if (!completedExerciseIds.contains(userExerciseId)) {
+          completedExerciseIds.add(userExerciseId);
+        }
+      }
+
+      // Refresh Home progress if registered
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().loadProgress();
+      }
 
       toastification.show(
         type: ToastificationType.success,
@@ -192,8 +255,7 @@ class WorkoutController extends GetxController {
         showProgressBar: true,
       );
 
-      // Optional: refresh data or update UI state
-      // loadAllWorkouts();
+      return result;
     } catch (e) {
       Get.back();
       toastification.show(
@@ -214,6 +276,7 @@ class WorkoutController extends GetxController {
         borderRadius: BorderRadius.circular(12),
         showProgressBar: true,
       );
+      return null;
     }
   }
 }

@@ -15,16 +15,36 @@ import '../../../widgets/daytrainningcard.dart';
 import '../controllers/workoutcontroller.dart';
 import 'excercisedetails.dart';
 
-class WorkoutDetailsScreen extends StatelessWidget {
+class WorkoutDetailsScreen extends StatefulWidget {
   final int? challengeId;
   const WorkoutDetailsScreen({super.key, this.challengeId});
+
+  @override
+  State<WorkoutDetailsScreen> createState() => _WorkoutDetailsScreenState();
+}
+
+class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final workoutController = Get.find<WorkoutController>();
+      final workout = workoutController.selectedWorkoutDetail.value;
+      if (workout != null) {
+        workoutController.fetchWorkoutProgress(workout.id);
+      }
+      if (widget.challengeId != null && Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().refreshActiveChallenge(widget.challengeId!);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final workoutController = Get.find<WorkoutController>();
     final homeController =
         Get.isRegistered<HomeController>() ? Get.find<HomeController>() : null;
-    final bool isChallenge = challengeId != null && homeController != null;
+    final bool isChallenge = widget.challengeId != null && homeController != null;
 
     return Obx(() {
       // Get the detailed workout from controller (loaded via loadWorkoutDetail(id))
@@ -116,17 +136,87 @@ class WorkoutDetailsScreen extends StatelessWidget {
                           fontSize: 14.sp,
                         ),
                       ),
+                    ] else if (!isChallenge &&
+                        workoutController.completedExerciseIds.isNotEmpty) ...[
+                      Text(
+                        "${workoutController.completedExerciseIds.length}/${workout.exercises!.length} Done",
+                        style: AppTextStyles.poppinsMedium.copyWith(
+                          color: AppColor.green16A34A,
+                          fontSize: 14.sp,
+                        ),
+                      ),
                     ],
                   ],
                 ),
               ),
 
+              // Progress Bar
+              if (workout.exercises != null && workout.exercises!.isNotEmpty) ...[
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Workout Progress",
+                            style: AppTextStyles.poppinsRegular.copyWith(
+                              color: Colors.white70,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                          Text(
+                            isChallenge
+                                ? "${activeChallenge?.userProgress?.completionPercentage ?? 0}%"
+                                : "${workout.exercises!.isNotEmpty ? ((workoutController.completedExerciseIds.length / workout.exercises!.length) * 100).clamp(0, 100).toInt() : 0}%",
+                            style: AppTextStyles.poppinsBold.copyWith(
+                              color: ((isChallenge
+                                              ? (activeChallenge?.userProgress?.completionPercentage ?? 0)
+                                              : (workoutController.completedExerciseIds.length / workout.exercises!.length) * 100) >=
+                                          100)
+                                  ? AppColor.green16A34A
+                                  : AppColor.customPurple,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 6.h),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8.r),
+                        child: LinearProgressIndicator(
+                          value: isChallenge
+                              ? ((activeChallenge?.userProgress?.completionPercentage ?? 0) / 100.0).clamp(0.0, 1.0)
+                              : (workout.exercises!.isNotEmpty
+                                  ? (workoutController.completedExerciseIds.length / workout.exercises!.length).clamp(0.0, 1.0)
+                                  : 0.0),
+                          backgroundColor: Colors.white12,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            ((isChallenge
+                                            ? (activeChallenge?.userProgress?.completionPercentage ?? 0)
+                                            : (workoutController.completedExerciseIds.length / workout.exercises!.length) * 100) >=
+                                        100)
+                                ? AppColor.green16A34A
+                                : AppColor.customPurple,
+                          ),
+                          minHeight: 6.h,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 10.h),
+              ],
+
               // 3. All Exercises with isCompleted check
               ...workout.exercises!.asMap().entries.map((entry) {
                 final int index = entry.key;
                 final exercise = entry.value;
-                final bool isCompleted = isChallenge &&
-                    (homeController.isExerciseCompleted(index, exercise));
+                final bool isCompleted = isChallenge
+                    ? (homeController?.isExerciseCompleted(index, exercise) ?? false)
+                    : (workoutController.isExerciseCompleted(index, exercise));
 
                 return TrainingStepWidget(
                   step: exercise,
@@ -161,7 +251,7 @@ class WorkoutDetailsScreen extends StatelessWidget {
                     await Get.to(
                       () => ExerciseDetailsScreen(
                         workutid: workout.id,
-                        challengeId: challengeId,
+                        challengeId: widget.challengeId,
                         exerciseIndex: index,
                         isChallenge: isChallenge,
                       ),
@@ -169,8 +259,10 @@ class WorkoutDetailsScreen extends StatelessWidget {
                       transition: Transition.rightToLeft,
                     );
 
-                    if (isChallenge && challengeId != null) {
-                      await homeController.refreshActiveChallenge(challengeId!);
+                    if (isChallenge && widget.challengeId != null) {
+                      await homeController?.refreshActiveChallenge(widget.challengeId!);
+                    } else {
+                      await workoutController.fetchWorkoutProgress(workout.id);
                     }
                   },
                 );

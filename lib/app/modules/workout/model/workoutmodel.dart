@@ -41,6 +41,74 @@ class UserExercise {
   }
 }
 
+class WorkoutProgress {
+  final int? id;
+  final String? completedAt;
+  final List<dynamic> completedExercises;
+  final int completionPercentage;
+  final int? userWorkout;
+
+  WorkoutProgress({
+    this.id,
+    this.completedAt,
+    this.completedExercises = const [],
+    this.completionPercentage = 0,
+    this.userWorkout,
+  });
+
+  factory WorkoutProgress.fromJson(Map<String, dynamic> json) {
+    return WorkoutProgress(
+      id: json['id'] as int?,
+      completedAt: json['completed_at'] as String?,
+      completedExercises: (json['completed_exercises'] as List?) ?? [],
+      completionPercentage: json['completion_percentage'] is int
+          ? json['completion_percentage']
+          : int.tryParse(json['completion_percentage']?.toString() ?? '0') ?? 0,
+      userWorkout: json['user_workout'] as int?,
+    );
+  }
+}
+
+class WorkoutProgressResponse {
+  final WorkoutProgress? workoutProgress;
+  final String? workoutName;
+  final int totalExercises;
+  final int completedExercisesCount;
+  final int completionPercentage;
+  final bool allCompleted;
+
+  WorkoutProgressResponse({
+    this.workoutProgress,
+    this.workoutName,
+    this.totalExercises = 0,
+    this.completedExercisesCount = 0,
+    this.completionPercentage = 0,
+    this.allCompleted = false,
+  });
+
+  factory WorkoutProgressResponse.fromJson(Map<String, dynamic> json) {
+    final progressJson = json['workout_progress'];
+    return WorkoutProgressResponse(
+      workoutProgress: progressJson is Map<String, dynamic>
+          ? WorkoutProgress.fromJson(progressJson)
+          : null,
+      workoutName: json['workout_name'] as String?,
+      totalExercises: json['total_exercises'] is int
+          ? json['total_exercises']
+          : int.tryParse(json['total_exercises']?.toString() ?? '0') ?? 0,
+      completedExercisesCount: json['completed_exercises'] is int
+          ? json['completed_exercises']
+          : (json['completed_exercises'] is List
+              ? (json['completed_exercises'] as List).length
+              : int.tryParse(json['completed_exercises']?.toString() ?? '0') ?? 0),
+      completionPercentage: json['completion_percentage'] is int
+          ? json['completion_percentage']
+          : int.tryParse(json['completion_percentage']?.toString() ?? '0') ?? 0,
+      allCompleted: json['all_completed'] as bool? ?? false,
+    );
+  }
+}
+
 class Workout {
   final int id;
   final String name;
@@ -52,6 +120,7 @@ class Workout {
   final String difficulty;
   final bool isFavorite;
   final List<UserExercise>? exercises; // ← can be null if not loaded
+  final WorkoutProgress? progress;
 
   Workout({
     required this.id,
@@ -64,6 +133,7 @@ class Workout {
     required this.difficulty,
     this.isFavorite = false,
     this.exercises,
+    this.progress,
   });
 
   factory Workout.fromJson(Map<String, dynamic> json) {
@@ -82,6 +152,11 @@ class Workout {
                 .map((e) => UserExercise.fromJson(e))
                 .toList()
           : null,
+      progress: json['workout_progress'] != null
+          ? WorkoutProgress.fromJson(json['workout_progress'])
+          : (json['user_progress'] != null
+              ? WorkoutProgress.fromJson(json['user_progress'])
+              : null),
     );
   }
 
@@ -96,6 +171,7 @@ class Workout {
     String? difficulty,
     bool? isFavorite,
     List<UserExercise>? exercises,
+    WorkoutProgress? progress,
   }) {
     return Workout(
       id: id ?? this.id,
@@ -108,6 +184,7 @@ class Workout {
       difficulty: difficulty ?? this.difficulty,
       isFavorite: isFavorite ?? this.isFavorite,
       exercises: exercises ?? this.exercises,
+      progress: progress ?? this.progress,
     );
   }
 }
