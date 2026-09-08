@@ -20,6 +20,9 @@ class NotificationScreen extends StatelessWidget {
 
   Widget _buildTabButton(NotificationController controller, String tabName) {
     final isSelected = tabName == controller.selectedTab.value;
+    final type = tabName == 'Reminders' ? 'reminder' : 'system';
+    final unreadCount = controller.unreadCountForType(type);
+
     return GestureDetector(
       onTap: () => controller.selectTab(tabName),
       child: Container(
@@ -29,14 +32,34 @@ class NotificationScreen extends StatelessWidget {
           color: isSelected ? AppColor.customPurple : AppColor.white,
           borderRadius: BorderRadius.circular(20.r),
         ),
-        child: Center(
-          child: Text(
-            tabName,
-            style: AppTextStyles.poppinsSemiBold.copyWith(
-              fontSize: 14.sp,
-              color: isSelected ? AppColor.white : AppColor.black232323,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              tabName,
+              style: AppTextStyles.poppinsSemiBold.copyWith(
+                fontSize: 14.sp,
+                color: isSelected ? AppColor.white : AppColor.black232323,
+              ),
             ),
-          ),
+            if (unreadCount > 0) ...[
+              SizedBox(width: 6.w),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColor.white : AppColor.customPurple,
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Text(
+                  '$unreadCount',
+                  style: AppTextStyles.poppinsBold.copyWith(
+                    fontSize: 10.sp,
+                    color: isSelected ? AppColor.customPurple : AppColor.white,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -198,6 +221,79 @@ class NotificationScreen extends StatelessWidget {
               ),
             ),
           ),
+
+          // Dedicated Per-Tab Status & Mark All Read Bar
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 2.h),
+            child: Obx(() {
+              final isReminder = controller.selectedTab.value == 'Reminders';
+              final String type = isReminder ? 'reminder' : 'system';
+              final bool hasUnread = controller.hasUnreadForType(type);
+              final int unreadCount = controller.unreadCountForType(type);
+              final int totalCount = controller.countForType(type);
+              final bool isMarking = controller.isMarkingRead.value;
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    unreadCount > 0
+                        ? '$unreadCount unread ${controller.selectedTab.value.toLowerCase()}'
+                        : '$totalCount ${controller.selectedTab.value.toLowerCase()}',
+                    style: AppTextStyles.poppinsMedium.copyWith(
+                      color: AppColor.gray9CA3AF,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: isMarking || !hasUnread
+                        ? null
+                        : () => controller.markAllAsRead(type: type),
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isMarking)
+                            SizedBox(
+                              width: 14.w,
+                              height: 14.w,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColor.customPurple,
+                              ),
+                            )
+                          else
+                            Icon(
+                              Icons.done_all_rounded,
+                              size: 16.sp,
+                              color: hasUnread
+                                  ? AppColor.customPurple
+                                  : AppColor.gray9CA3AF.withOpacity(0.4),
+                            ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            'Mark ${controller.selectedTab.value} Read',
+                            style: AppTextStyles.poppinsMedium.copyWith(
+                              color: hasUnread
+                                  ? AppColor.customPurple
+                                  : AppColor.gray9CA3AF.withOpacity(0.4),
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+          SizedBox(height: 6.h),
 
           // Notification List
           Expanded(

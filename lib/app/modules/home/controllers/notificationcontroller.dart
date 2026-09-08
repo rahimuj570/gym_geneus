@@ -17,6 +17,7 @@ class NotificationController extends GetxController {
   var selectedTab = 'Reminders'.obs;
   var notifications = <AppNotification>[].obs;
   var isLoading = true.obs;
+  var isMarkingRead = false.obs;
 
   final List<String> tabs = ['Reminders', 'System'];
 
@@ -28,6 +29,88 @@ class NotificationController extends GetxController {
 
   void selectTab(String tab) {
     selectedTab.value = tab;
+  }
+
+  bool get hasUnreadNotifications {
+    final bool isReminderTab = selectedTab.value == 'Reminders';
+    final type = isReminderTab ? 'reminder' : 'system';
+    return hasUnreadForType(type);
+  }
+
+  bool hasUnreadForType(String type) {
+    return notifications.any((n) => !n.isRead && n.notificationType == type);
+  }
+
+  int unreadCountForType(String type) {
+    return notifications
+        .where((n) => !n.isRead && n.notificationType == type)
+        .length;
+  }
+
+  int countForType(String type) {
+    return notifications.where((n) => n.notificationType == type).length;
+  }
+
+  Future<void> markAllAsRead({String? type}) async {
+    final targetType =
+        type ?? (selectedTab.value == 'Reminders' ? 'reminder' : 'system');
+    try {
+      isMarkingRead.value = true;
+
+      final success = await _service.markAllNotificationsRead(
+        notificationType: targetType,
+      );
+
+      if (success) {
+        // Optimistically update notifications for target type
+        notifications.value = notifications.map((n) {
+          if (n.notificationType == targetType) {
+            return n.copyWith(isRead: true);
+          }
+          return n;
+        }).toList();
+
+        toastification.show(
+          type: ToastificationType.success,
+          style: ToastificationStyle.fillColored,
+          primaryColor: AppColor.customPurple,
+          foregroundColor: Colors.white,
+          title: Text(
+            "Success",
+            style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+          ),
+          description: Text(
+            "Marked all ${targetType == 'reminder' ? 'reminders' : 'system notifications'} as read",
+            style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+          ),
+          alignment: Alignment.topRight,
+          autoCloseDuration: const Duration(seconds: 3),
+          borderRadius: BorderRadius.circular(12),
+          showProgressBar: true,
+        );
+      }
+    } catch (e) {
+      toastification.show(
+        type: ToastificationType.error,
+        style: ToastificationStyle.fillColored,
+        primaryColor: Colors.red,
+        foregroundColor: Colors.white,
+        title: Text(
+          "Error",
+          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+        ),
+        description: Text(
+          "Failed to mark notifications as read",
+          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+        ),
+        alignment: Alignment.topRight,
+        autoCloseDuration: const Duration(seconds: 4),
+        borderRadius: BorderRadius.circular(12),
+        showProgressBar: true,
+      );
+    } finally {
+      isMarkingRead.value = false;
+    }
   }
 
   Future<void> fetchNotifications() async {

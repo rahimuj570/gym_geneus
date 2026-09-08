@@ -949,6 +949,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  sync_datetime:
+    dependency: "direct main"
+    description:
+      name: sync_datetime
+      sha256: ed397f0b81a283b151186aa3cd1ad7c17ecae69f9780ee001f46bc6e3e44bff1
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   term_glyph:
     dependency: transitive
     description:

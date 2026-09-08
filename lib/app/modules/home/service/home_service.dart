@@ -166,6 +166,43 @@ class HomeService extends GetxService {
     }
   }
 
+  Future<bool> markAllNotificationsRead({String? notificationType}) async {
+    final token = box.read("loginToken");
+    if (token == null) throw Exception("Login required");
+
+    final params = <String, String>{};
+    if (notificationType != null && notificationType.isNotEmpty) {
+      params['notification_type'] = notificationType;
+    }
+
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/utils/notifications/mark-all-read/',
+    ).replace(queryParameters: params.isNotEmpty ? params : null);
+
+    final response = await http.post(
+      uri,
+      headers: {
+        "Authorization": "Bearer $token",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: uri.toString(),
+      method: Method.POST,
+      tag: 'Home-MarkAllNotificationsRead',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+      return true;
+    } else {
+      throw Exception("Failed to mark all notifications as read");
+    }
+  }
+
   Future<List<WorkoutActivity>> fetchTodayActivities() async {
     final token = box.read("loginToken");
     if (token == null) throw Exception("Login required");

@@ -1,6 +1,7 @@
 // lib/app/modules/notification/models/notification_model.dart
 
 import 'package:intl/intl.dart';
+import 'package:sync_datetime/sync_datetime.dart';
 
 class AppNotification {
   final int id;
@@ -26,7 +27,25 @@ class AppNotification {
       message: json['message'],
       notificationType: json['notification_type'], // reminder or system
       isRead: json['is_read'] ?? false,
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: SyncDateTime.fromUtc(DateTime.parse(json['created_at'])),
+    );
+  }
+
+  AppNotification copyWith({
+    int? id,
+    String? title,
+    String? message,
+    String? notificationType,
+    bool? isRead,
+    DateTime? createdAt,
+  }) {
+    return AppNotification(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      notificationType: notificationType ?? this.notificationType,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
