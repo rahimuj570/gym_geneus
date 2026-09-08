@@ -6,6 +6,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import '../../../constants/appconstants.dart';
+import '../../../services/api_client.dart';
 import '../model/meal_result_analysis.dart';
 import '../model/nutrion_home.dart';
 
@@ -62,28 +63,13 @@ class NutritionService {
 
   // Step 2: Save meal upload
   Future<bool> saveMealUpload(int tempUploadId) async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Login required');
-
-    final url = '${AppConstants.baseUrl}/nutrition/save-meal-upload/';
+    final url = Uri.parse('${AppConstants.baseUrl}/nutrition/save-meal-upload/');
     final payload = {"temp_upload_id": tempUploadId};
 
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode(payload),
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.POST,
+    final response = await ApiClient.post(
+      url,
+      body: payload,
       tag: 'Nutrition-SaveMeal',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -103,25 +89,11 @@ class NutritionService {
 
   // Step 3: Fetch home/daily nutrition breakdown data
   Future<NutritionHomeResponse> fetchNutritionHome() async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Login required');
+    final url = Uri.parse('${AppConstants.baseUrl}/nutrition/');
 
-    final url = '${AppConstants.baseUrl}/nutrition/';
-
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
+    final response = await ApiClient.get(
+      url,
       tag: 'Nutrition-Home',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {

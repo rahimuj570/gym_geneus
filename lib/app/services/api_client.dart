@@ -29,11 +29,11 @@ class ApiClient {
     );
 
     if (response.statusCode == 401) {
-      print('Token expired (401). Attempting to refresh token...');
+      print('🔒 401 Unauthorized for $url. Attempting token refresh...');
       final success = await _authProvider.refreshAccessToken();
       if (success) {
         final newToken = _box.read<String>('loginToken');
-        print('Token refreshed successfully. Retrying request...');
+        print('🔄 Retrying request with refreshed token...');
         response = await requestFn(newToken);
 
         FlutterDebugLogger.printJsonResponse(
@@ -44,7 +44,7 @@ class ApiClient {
           responseBody: response.body,
         );
       } else {
-        print('Token refresh failed. Logging user out...');
+        print('❌ Token refresh failed. Redirecting to login...');
         _forceLogout();
       }
     }
@@ -56,7 +56,6 @@ class ApiClient {
     _box.remove('loginToken');
     _box.remove('refreshToken');
     _box.remove('actionToken');
-    // Navigate to login safely
     if (Get.key.currentState != null) {
       Get.offAll(() => Login());
     }
@@ -91,10 +90,12 @@ class ApiClient {
         if (token != null) 'Authorization': 'Bearer $token',
         ...?headers,
       };
+      final encodedBody =
+          (body is Map || body is List) ? jsonEncode(body) : body;
       return http.post(
         url,
         headers: requestHeaders,
-        body: body,
+        body: encodedBody,
         encoding: encoding,
       );
     });
@@ -114,10 +115,12 @@ class ApiClient {
         if (token != null) 'Authorization': 'Bearer $token',
         ...?headers,
       };
+      final encodedBody =
+          (body is Map || body is List) ? jsonEncode(body) : body;
       return http.put(
         url,
         headers: requestHeaders,
-        body: body,
+        body: encodedBody,
         encoding: encoding,
       );
     });
@@ -137,10 +140,12 @@ class ApiClient {
         if (token != null) 'Authorization': 'Bearer $token',
         ...?headers,
       };
+      final encodedBody =
+          (body is Map || body is List) ? jsonEncode(body) : body;
       return http.patch(
         url,
         headers: requestHeaders,
-        body: body,
+        body: encodedBody,
         encoding: encoding,
       );
     });
@@ -159,13 +164,14 @@ class ApiClient {
         if (token != null) 'Authorization': 'Bearer $token',
         ...?headers,
       };
+      final encodedBody =
+          (body is Map || body is List) ? jsonEncode(body) : body;
       return http.delete(
         url,
         headers: requestHeaders,
-        body: body,
+        body: encodedBody,
         encoding: encoding,
       );
     });
   }
 }
-

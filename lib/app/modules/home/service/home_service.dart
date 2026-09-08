@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:kenzeno/app/modules/home/models/leaderboard_model.dart';
 
 import '../../../constants/appconstants.dart';
+import '../../../services/api_client.dart';
 import '../../workout/model/workoutmodel.dart';
 import '../models/activity_model.dart';
 import '../models/app_notification.dart';
@@ -133,9 +134,6 @@ class HomeService extends GetxService {
   Future<List<AppNotification>> fetchNotifications({
     String? notificationType, // "reminder" or "system"
   }) async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final params = <String, String>{};
     if (notificationType != null && notificationType.isNotEmpty) {
       params['notification_type'] = notificationType;
@@ -143,20 +141,9 @@ class HomeService extends GetxService {
 
     final uri = Uri.parse(
       '${AppConstants.baseUrl}/utils/notifications/',
-    ).replace(queryParameters: params);
+    ).replace(queryParameters: params.isNotEmpty ? params : null);
 
-    final response = await http.get(
-      uri,
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.GET,
-      tag: 'Home-Notifications',
-      statusCode: response.statusCode,
-      responseBody: response.body,
-    );
+    final response = await ApiClient.get(uri, tag: 'Home-Notifications');
 
     if (response.statusCode == 200) {
       final List data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -167,9 +154,6 @@ class HomeService extends GetxService {
   }
 
   Future<bool> markAllNotificationsRead({String? notificationType}) async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final params = <String, String>{};
     if (notificationType != null && notificationType.isNotEmpty) {
       params['notification_type'] = notificationType;
@@ -179,21 +163,9 @@ class HomeService extends GetxService {
       '${AppConstants.baseUrl}/utils/notifications/mark-all-read/',
     ).replace(queryParameters: params.isNotEmpty ? params : null);
 
-    final response = await http.post(
+    final response = await ApiClient.post(
       uri,
-      headers: {
-        "Authorization": "Bearer $token",
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.POST,
       tag: 'Home-MarkAllNotificationsRead',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
@@ -204,21 +176,10 @@ class HomeService extends GetxService {
   }
 
   Future<List<WorkoutActivity>> fetchTodayActivities() async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
-    final url = '${AppConstants.baseUrl}/workouts/activities/';
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
+    final url = Uri.parse('${AppConstants.baseUrl}/workouts/activities/');
+    final response = await ApiClient.get(
+      url,
       tag: 'Home-TodayActivities',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {

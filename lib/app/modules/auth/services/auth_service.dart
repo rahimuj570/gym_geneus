@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
@@ -68,20 +69,36 @@ class AuthProvider {
     }
   }
 
-  Future<bool> refreshAccessToken() async {
-    final refreshToken = box.read('refreshToken');
+  static Completer<bool>? _refreshCompleter;
 
-    if (refreshToken == null || refreshToken.toString().isEmpty) {
-      print('No refresh token found.');
+  Future<bool> refreshAccessToken() async {
+    // If a refresh request is already in progress, await the existing one to avoid token race condition
+    if (_refreshCompleter != null && !_refreshCompleter!.isCompleted) {
+      print('⏳ Refresh token request already in progress, awaiting existing result...');
+      return _refreshCompleter!.future;
+    }
+
+    _refreshCompleter = Completer<bool>();
+
+    final refreshToken = box.read<String>('refreshToken');
+
+    if (refreshToken == null || refreshToken.toString().trim().isEmpty) {
+      print('⚠️ No refresh token found in storage.');
+      _refreshCompleter!.complete(false);
+      _refreshCompleter = null;
       return false;
     }
 
     try {
       final url = '$_baseUrl/accounts/token/refresh/';
+      print('🔄 Refreshing access token via $url...');
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh': refreshToken}),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'refresh': refreshToken.trim()}),
       );
 
       FlutterDebugLogger.printJsonResponse(
@@ -92,28 +109,36 @@ class AuthProvider {
         responseBody: response.body,
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final newAccessToken = data['access'];
-        final newRefreshToken = data['refresh']; // token rotation support
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final String? newAccessToken =
+            (data['access'] ?? data['access_token'])?.toString();
+        final String? newRefreshToken =
+            (data['refresh'] ?? data['refresh_token'])?.toString();
 
-        if (newAccessToken != null) {
+        if (newAccessToken != null && newAccessToken.isNotEmpty) {
           box.write('loginToken', newAccessToken);
-          // If the server rotates refresh tokens, save the new one too
-          if (newRefreshToken != null) {
+          if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
             box.write('refreshToken', newRefreshToken);
           }
-          print('Access token refreshed successfully');
+          print('✅ Access token refreshed successfully.');
+          _refreshCompleter!.complete(true);
+          _refreshCompleter = null;
           return true;
         }
-      } else {
-        // 400/401 from refresh endpoint means the refresh token itself is expired
-        print('Refresh token expired (${response.statusCode}). Forcing logout...');
+      }
+
+      print('❌ Refresh token expired or rejected (${response.statusCode}).');
+      // If 400 or 401, refresh token is expired or invalid
+      if (response.statusCode == 400 || response.statusCode == 401) {
         _forceLogout();
       }
     } catch (e) {
-      print('Token refresh error: $e');
+      print('❌ Token refresh network/parsing error: $e');
     }
+
+    _refreshCompleter!.complete(false);
+    _refreshCompleter = null;
     return false;
   }
 
