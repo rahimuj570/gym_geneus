@@ -69,18 +69,18 @@ class ForgotPassword extends StatelessWidget {
 
                   // Subtitle
                   Text(
-                    'Enter your Email or phone number to reset your Password Quickly',
-                    style: AppTextStyles.workSansBold.copyWith(
-                      color: Colors.white,
-                      fontSize: 12.sp,
+                    'Enter your registered email to reset your password',
+                    style: AppTextStyles.workSansRegular.copyWith(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 13.sp,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 40.h),
 
-                  // Email or Phone Number Label
+                  // Email Label
                   Text(
-                    'Email or Phone Number',
+                    'Email Address',
                     style: AppTextStyles.workSansBold.copyWith(
                       color: Colors.white,
                       fontSize: 12.sp,
@@ -88,20 +88,20 @@ class ForgotPassword extends StatelessWidget {
                   ),
                   SizedBox(height: 6.h),
 
-                  // Email or Phone Number Input
+                  // Email Input
                   InputTextWidget(
                     controller: controller.forgotEmailController,
-                    hintText: 'Enter your Email or phone number',
+                    hintText: 'Enter your email',
                     onChanged: (value) {},
-                    leading:
-                        false, // The image shows no leading icon in the input field
+                    leading: true,
+                    leadingIcon: ImageAssets.email,
                     backgroundColor: AppColor.white,
                     borderColor: AppColor.customPurple,
                     textColor: AppColor.greyDark,
                     hintTextColor: AppColor.greyDark,
                     borderRadius: 10.r,
                     contentPadding: true,
-                    height: 40.0,
+                    height: 40.h,
                   ),
                   SizedBox(height: 40.h),
 
@@ -109,8 +109,11 @@ class ForgotPassword extends StatelessWidget {
                   Obx(
                     () => CustomButton(
                       onPress: () async {
-                        final emailText = controller.forgotEmailController.text.trim();
-                        final success = await controller.resetPasswordRequest(emailText);
+                        final emailText = controller.forgotEmailController.text
+                            .trim();
+                        final success = await controller.resetPasswordRequest(
+                          emailText,
+                        );
                         if (success) {
                           Get.to(
                             OtpVerification(

@@ -400,17 +400,6 @@ class Authcontroller extends GetxController {
         } else {
           CustomSnackbar.showError(result);
         }
-      } else {
-        final result = await _authProvider.otpActivate(
-          registeredEmail.isNotEmpty ? registeredEmail : forgotEmailController.text.trim(),
-          trimmedOtp,
-        );
-        if (result == "success") {
-          CustomSnackbar.showSuccess('OTP verified successfully!');
-          Get.to(Passconfirmation(), transition: Transition.rightToLeft);
-        } else {
-          CustomSnackbar.showError(result);
-        }
       }
     } catch (e) {
       CustomSnackbar.showError(e.toString());
@@ -419,20 +408,71 @@ class Authcontroller extends GetxController {
     }
   }
 
-  Future<void> resendOtp() async {
-    if (registeredEmail.isEmpty) {
-      registeredEmail = signupEmailController.text.trim().isNotEmpty
-          ? signupEmailController.text.trim()
-          : forgotEmailController.text.trim();
+  Future<bool> verifyOtpForPasswordReset(String email, String otp) async {
+    final trimmedOtp = otp.trim();
+    final trimmedEmail = email.trim().isNotEmpty
+        ? email.trim()
+        : (registeredEmail.isNotEmpty ? registeredEmail : forgotEmailController.text.trim());
+
+    if (trimmedEmail.isEmpty) {
+      CustomSnackbar.showError('Email is required');
+      return false;
     }
-    if (registeredEmail.isEmpty) {
+    if (trimmedOtp.isEmpty) {
+      CustomSnackbar.showError('Please enter the verification code');
+      return false;
+    }
+    if (trimmedOtp.length != 4) {
+      CustomSnackbar.showError('Please enter the complete 4-digit verification code');
+      return false;
+    }
+
+    try {
+      isLoadingverify.value = true;
+      final result = await _authProvider.checkOtp(
+        email: trimmedEmail,
+        otp: trimmedOtp,
+        purpose: "password_reset",
+      );
+
+      if (result == "success") {
+        CustomSnackbar.showSuccess('OTP verified successfully!');
+        return true;
+      } else {
+        CustomSnackbar.showError(result);
+        return false;
+      }
+    } catch (e) {
+      CustomSnackbar.showError(e.toString());
+      return false;
+    } finally {
+      isLoadingverify.value = false;
+    }
+  }
+
+  Future<void> resendOtp({String? email}) async {
+    final targetEmail = email ??
+        (registeredEmail.isNotEmpty
+            ? registeredEmail
+            : (signupEmailController.text.trim().isNotEmpty
+                ? signupEmailController.text.trim()
+                : forgotEmailController.text.trim()));
+
+    if (targetEmail.isEmpty) {
       CustomSnackbar.showError('Email is required to resend OTP');
       return;
     }
     try {
       isLoadingresend.value = true;
-
-      final result = await _authProvider.resendOtp(registeredEmail);
+      String result;
+      if (frompage.value == "signup") {
+        result = await _authProvider.resendOtp(targetEmail);
+      } else {
+        result = await _authProvider.resetPassword(
+          targetEmail,
+          purpose: "password_reset",
+        );
+      }
 
       if (result == "success") {
         CustomSnackbar.showInfo('A new OTP code has been sent to your email.');
@@ -460,7 +500,10 @@ class Authcontroller extends GetxController {
     try {
       isLoadingpass.value = true;
       registeredEmail = trimmedEmail;
-      final result = await _authProvider.resetPassword(registeredEmail);
+      final result = await _authProvider.resetPassword(
+        registeredEmail,
+        purpose: "password_reset",
+      );
 
       if (result == "success") {
         CustomSnackbar.showInfo('OTP code sent for password reset.');
@@ -477,25 +520,50 @@ class Authcontroller extends GetxController {
     }
   }
 
-  Future<void> setNewPassword() async {
-    emailController.text = registeredEmail;
-    _validateInputs(isLogin: true);
+  Future<bool> resetPasswordConfirm({
+    required String email,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final trimmedPassword = newPassword.trim();
+    final trimmedConfirm = confirmPassword.trim();
+
+    if (trimmedPassword.isEmpty) {
+      CustomSnackbar.showError('Please enter a new password');
+      return false;
+    }
+    if (trimmedPassword.length < 6) {
+      CustomSnackbar.showError('Password must be at least 6 characters');
+      return false;
+    }
+    if (trimmedConfirm.isEmpty) {
+      CustomSnackbar.showError('Please confirm your new password');
+      return false;
+    }
+    if (trimmedPassword != trimmedConfirm) {
+      CustomSnackbar.showError('Passwords do not match');
+      return false;
+    }
 
     try {
       isLoadingnewpass.value = true;
-
-      final success = await _authProvider.setNewPassword(
-        registeredEmail,
-        passwordController.text.trim(),
+      final result = await _authProvider.resetPasswordConfirm(
+        email: email.trim(),
+        otp: otp.trim(),
+        newPassword: trimmedPassword,
       );
-      if (success) {
+
+      if (result == "success") {
         clearAllControllers(preserveRemembered: false);
-        CustomSnackbar.showSuccess('Password reset successfully!');
+        return true;
       } else {
-        CustomSnackbar.showError('Password reset failed. Please try again.');
+        CustomSnackbar.showError(result);
+        return false;
       }
     } catch (e) {
       CustomSnackbar.showError(e.toString());
+      return false;
     } finally {
       isLoadingnewpass.value = false;
     }

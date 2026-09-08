@@ -217,44 +217,122 @@ class AuthProvider {
     }
   }
 
-  // otpactivate
-  Future<String> otpActivate(String email, String otp) async {
+  // check OTP for password reset or other purposes
+  Future<String> checkOtp({
+    required String email,
+    required String otp,
+    String purpose = "password_reset",
+  }) async {
     try {
-      final url = '$_baseUrl/auth/verify_otp/';
+      final url = '$_baseUrl/accounts/check-otp/';
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
           'otp': otp,
-          'action': "password_reset",
+          'purpose': purpose,
         }),
       );
 
       FlutterDebugLogger.printJsonResponse(
         url: url,
         method: Method.POST,
-        tag: 'Auth-VerifyOTP',
+        tag: 'Auth-CheckOTP',
         statusCode: response.statusCode,
         responseBody: response.body,
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final token = data['action_token'];
-        if (token != null) box.write('actionToken', token);
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data is Map) {
+          if (data['is_valid'] == true) {
+            return "success";
+          }
+          if (data['is_valid'] == false) {
+            return data['message']?.toString() ?? "Invalid or expired OTP code.";
+          }
+        }
         return "success";
       }
+
+      if (data is Map) {
+        if (data.containsKey('detail')) return data['detail'].toString();
+        if (data.containsKey('message')) return data['message'].toString();
+        if (data.containsKey('otp')) {
+          final err = data['otp'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+        if (data.containsKey('email')) {
+          final err = data['email'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+        if (data.containsKey('error')) return data['error'].toString();
+        if (data.containsKey('non_field_errors')) {
+          final err = data['non_field_errors'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+      }
+      return "Invalid or expired OTP code.";
+    } catch (e) {
+      print('Check OTP error: $e');
+      return e.toString();
+    }
+  }
+
+  // verify email OTP for signup/activation
+  Future<String> verifyEmailOtp(String email, String otp) async {
+    try {
+      final url = '$_baseUrl/accounts/verify-email/';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'otp': otp,
+        }),
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-VerifyEmailOTP',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return "success";
+      }
+
       final data = jsonDecode(utf8.decode(response.bodyBytes));
       if (data is Map) {
         if (data.containsKey('detail')) return data['detail'].toString();
+        if (data.containsKey('message')) return data['message'].toString();
+        if (data.containsKey('otp')) {
+          final err = data['otp'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+        if (data.containsKey('email')) {
+          final err = data['email'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
         if (data.containsKey('error')) return data['error'].toString();
+        if (data.containsKey('non_field_errors')) {
+          final err = data['non_field_errors'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
       }
-      return "OTP verification failed. Please try again.";
+      return "Invalid or expired OTP code.";
     } catch (e) {
-      print('OTP Activation error: $e');
+      print('Verify OTP error: $e');
       return e.toString();
     }
+  }
+
+  // legacy otpActivate
+  Future<String> otpActivate(String email, String otp) async {
+    return checkOtp(email: email, otp: otp, purpose: "password_reset");
   }
 
   // resend otp
@@ -283,39 +361,112 @@ class AuthProvider {
     }
   }
 
-  // reset pass req
-  Future<String> resetPassword(String email) async {
+  // reset password request (OTP sent to email)
+  Future<String> resetPassword(String email, {String purpose = "password_reset"}) async {
     try {
-      final url = '$_baseUrl/auth/request_password_reset/';
-      final r = await http.post(
+      final url = '$_baseUrl/accounts/password-reset/';
+      final response = await http.post(
         Uri.parse(url),
-        body: {'email': email},
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'purpose': purpose,
+        }),
       );
 
       FlutterDebugLogger.printJsonResponse(
         url: url,
         method: Method.POST,
         tag: 'Auth-RequestPasswordReset',
-        statusCode: r.statusCode,
-        responseBody: r.body,
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
 
-      if (r.statusCode == 200) return "success";
-      final data = jsonDecode(utf8.decode(r.bodyBytes));
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return "success";
+      }
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
       if (data is Map) {
         if (data.containsKey('detail')) return data['detail'].toString();
+        if (data.containsKey('message')) return data['message'].toString();
         if (data.containsKey('email')) {
           final err = data['email'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+        if (data.containsKey('error')) return data['error'].toString();
+        if (data.containsKey('non_field_errors')) {
+          final err = data['non_field_errors'];
           return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
         }
       }
       return "Failed to request password reset. Please check your email.";
     } catch (e) {
+      print('Password reset request error: $e');
       return e.toString();
     }
   }
 
-  // set new password
+  // reset password confirm with OTP + new password
+  Future<String> resetPasswordConfirm({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      final url = '$_baseUrl/accounts/password-reset-confirm/';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'otp': otp,
+          'new_password': newPassword,
+        }),
+      );
+
+      FlutterDebugLogger.printJsonResponse(
+        url: url,
+        method: Method.POST,
+        tag: 'Auth-PasswordResetConfirm',
+        statusCode: response.statusCode,
+        responseBody: response.body,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return "success";
+      }
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (data is Map) {
+        if (data.containsKey('detail')) return data['detail'].toString();
+        if (data.containsKey('message')) return data['message'].toString();
+        if (data.containsKey('otp')) {
+          final err = data['otp'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+        if (data.containsKey('new_password')) {
+          final err = data['new_password'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+        if (data.containsKey('email')) {
+          final err = data['email'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+        if (data.containsKey('error')) return data['error'].toString();
+        if (data.containsKey('non_field_errors')) {
+          final err = data['non_field_errors'];
+          return (err is List && err.isNotEmpty) ? err[0].toString() : err.toString();
+        }
+      }
+      return "Password reset failed. Please check your OTP and try again.";
+    } catch (e) {
+      print('Password reset confirm error: $e');
+      return e.toString();
+    }
+  }
+
+  // legacy / fallback set new password
   Future<bool> setNewPassword(String email, String newPassword) async {
     final token = box.read("actionToken");
     final url = '$_baseUrl/auth/reset_password/';

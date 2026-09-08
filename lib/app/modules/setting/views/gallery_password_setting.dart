@@ -17,9 +17,13 @@ class GalleryPasswordSettingsScreen extends StatelessWidget {
         ? Get.find<GalleryPasswordController>()
         : Get.put(GalleryPasswordController());
 
-    final currentCtrl = TextEditingController(text: controller.currentPassword.value);
+    final currentCtrl = TextEditingController(
+      text: controller.currentPassword.value,
+    );
     final newCtrl = TextEditingController(text: controller.newPassword.value);
-    final confirmCtrl = TextEditingController(text: controller.confirmPassword.value);
+    final confirmCtrl = TextEditingController(
+      text: controller.confirmPassword.value,
+    );
 
     return Scaffold(
       backgroundColor: AppColor.black111214,
@@ -63,7 +67,7 @@ class GalleryPasswordSettingsScreen extends StatelessWidget {
                     SizedBox(width: 12.w),
                     Expanded(
                       child: Text(
-                        "Set a custom 4-digit PIN/Password to secure and lock your personal progress photos gallery.",
+                        "Set a custom PIN/Password to secure and lock your personal progress photos gallery.",
                         style: AppTextStyles.poppinsRegular.copyWith(
                           color: Colors.white70,
                           fontSize: 13.sp,

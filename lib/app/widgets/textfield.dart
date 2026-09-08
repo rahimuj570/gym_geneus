@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../res/assets/asset.dart';
 import '../res/colors/colors.dart';
 
-
 class InputTextWidget extends StatefulWidget {
   const InputTextWidget({
     super.key,
@@ -110,7 +109,12 @@ class _InputTextWidgetState extends State<InputTextWidget> {
     });
   }
 
-  Widget _buildIcon(String path, {double? width, double? height, Color? color}) {
+  Widget _buildIcon(
+    String path, {
+    double? width,
+    double? height,
+    Color? color,
+  }) {
     if (path.endsWith('.svg')) {
       return Padding(
         padding: EdgeInsetsGeometry.only(left: 10.w),
@@ -179,9 +183,9 @@ class _InputTextWidgetState extends State<InputTextWidget> {
                   border: InputBorder.none,
                   contentPadding: widget.contentPadding
                       ? EdgeInsets.symmetric(
-                    horizontal: widget.horizontal.w,
-                    vertical: widget.vertical.h,
-                  )
+                          horizontal: widget.horizontal.w,
+                          vertical: widget.vertical.h,
+                        )
                       : null,
                 ),
                 style: TextStyle(
@@ -198,14 +202,10 @@ class _InputTextWidgetState extends State<InputTextWidget> {
                 child: GestureDetector(
                   onTap: _toggleObscure,
                   child: _buildIcon(
-                    _isObscured
-                        ?   ImageAssets.eyes
-
-                        : widget.passwordIcon,
+                    _isObscured ? ImageAssets.eyes : widget.passwordIcon,
                     width: widget.obscureWidth,
                     height: widget.obscureHeigth,
                     color: AppColor.greyLight,
-
                   ),
                 ),
               ),

@@ -8,7 +8,9 @@ import '../../../res/assets/asset.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
 import '../../../widgets/custom_button.dart';
+import '../../../../app/widgets/custom_snackbar.dart';
 import '../controllers/authcontroller.dart';
+import 'reset_password.dart';
 
 class OtpVerification extends StatefulWidget {
   final String email;
@@ -129,9 +131,34 @@ class _OtpVerificationState extends State<OtpVerification> {
                         Obx(
                           () => CustomButton(
                             onPress: () async {
-                              controller.activateAccount(
-                                otpController.text.trim(),
-                              );
+                              final otp = otpController.text.trim();
+                              if (otp.isEmpty) {
+                                CustomSnackbar.showError('Please enter the verification code');
+                                return;
+                              }
+                              if (otp.length != 4) {
+                                CustomSnackbar.showError('Please enter the complete 4-digit verification code');
+                                return;
+                              }
+
+                              if (widget.fromPage == "signup") {
+                                controller.activateAccount(otp);
+                              } else {
+                                final success =
+                                    await controller.verifyOtpForPasswordReset(
+                                  widget.email,
+                                  otp,
+                                );
+                                if (success) {
+                                  Get.to(
+                                    () => ResetPasswordView(
+                                      email: widget.email,
+                                      otp: otp,
+                                    ),
+                                    transition: Transition.rightToLeft,
+                                  );
+                                }
+                              }
                             },
                             title: 'Verify',
                             height: 40.h,
@@ -165,7 +192,7 @@ class _OtpVerificationState extends State<OtpVerification> {
                               InkWell(
                                 onTap: () {
                                   if (!controller.isLoadingresend.value) {
-                                    controller.resendOtp();
+                                    controller.resendOtp(email: widget.email);
                                   }
                                 },
                                 child: Text(
