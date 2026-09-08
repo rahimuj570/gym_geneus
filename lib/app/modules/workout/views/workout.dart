@@ -19,7 +19,8 @@ import 'package:kenzeno/app/modules/setting/views/profile.dart';
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
 
 class Workout extends StatelessWidget {
-  const Workout({super.key});
+  final bool? isPop;
+  const Workout({super.key, this.isPop});
 
   Widget _buildTabBar(WorkoutController controller) {
     return Padding(
@@ -72,8 +73,8 @@ class Workout extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: const BackButtonBox(),
-        centerTitle: true,
+        leading: isPop != null && isPop == true ? const BackButtonBox() : null,
+        centerTitle: isPop,
         title: Text(
           'Workout',
           style: AppTextStyles.poppinsBold.copyWith(

@@ -307,8 +307,10 @@ class HomeScreen extends StatelessWidget {
                 label: 'Workout',
                 iconColor: isActive ? AppColor.customPurple : AppColor.white,
                 textColor: isActive ? AppColor.customPurple : AppColor.white,
-                onTap: () =>
-                    Get.to(() => Workout(), transition: Transition.rightToLeft),
+                onTap: () => Get.to(
+                  () => const Workout(isPop: true),
+                  transition: Transition.rightToLeft,
+                ),
               );
             }),
             _buildDivider(),
@@ -895,7 +897,8 @@ class HomeScreen extends StatelessWidget {
         SizedBox(height: 16.h),
         Obx(() {
           final profile = profileController.profile.value;
-          final isDobMissing = !profileController.isLoading.value &&
+          final isDobMissing =
+              !profileController.isLoading.value &&
               (profile.id != null || profile.email != null) &&
               profile.isDateOfBirthMissing;
 

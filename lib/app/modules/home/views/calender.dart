@@ -289,7 +289,10 @@ class FitTrackerView extends StatelessWidget {
                     onTap: () => controller.selectComparisonType(type),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14.w,
+                        vertical: 6.h,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColor.customPurple
@@ -304,7 +307,9 @@ class FitTrackerView extends StatelessWidget {
                       child: Text(
                         label,
                         style: AppTextStyles.poppinsMedium.copyWith(
-                          color: isSelected ? Colors.white : AppColor.gray9CA3AF,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColor.gray9CA3AF,
                           fontSize: 12.sp,
                         ),
                       ),
@@ -320,7 +325,9 @@ class FitTrackerView extends StatelessWidget {
               SizedBox(
                 height: 180.h,
                 child: const Center(
-                  child: CircularProgressIndicator(color: AppColor.customPurple),
+                  child: CircularProgressIndicator(
+                    color: AppColor.customPurple,
+                  ),
                 ),
               )
             // Case 1: Both First & Last exist
@@ -345,7 +352,10 @@ class FitTrackerView extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      _calculateDaysDifference(first.uploadedAt, last.uploadedAt),
+                      _calculateDaysDifference(
+                        first.uploadedAt,
+                        last.uploadedAt,
+                      ),
                       style: AppTextStyles.poppinsBold.copyWith(
                         color: AppColor.green22C55E,
                         fontSize: 16.sp,
@@ -443,7 +453,10 @@ class FitTrackerView extends StatelessWidget {
                     GestureDetector(
                       onTap: () => _showPhotoSourceSheet(),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 8.h,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColor.customPurple,
                           borderRadius: BorderRadius.circular(12.r),
@@ -451,7 +464,11 @@ class FitTrackerView extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.camera_alt, color: Colors.white, size: 16.sp),
+                            Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 16.sp,
+                            ),
                             SizedBox(width: 6.w),
                             Text(
                               'Take Photo',
@@ -553,10 +570,8 @@ class FitTrackerView extends StatelessWidget {
                     ? Image.network(
                         imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          ImageAssets.img_21,
-                          fit: BoxFit.cover,
-                        ),
+                        errorBuilder: (_, __, ___) =>
+                            Image.asset(ImageAssets.img_21, fit: BoxFit.cover),
                         loadingBuilder: (context, child, progress) {
                           if (progress == null) return child;
                           return const Center(
@@ -572,7 +587,10 @@ class FitTrackerView extends StatelessWidget {
                   alignment: Alignment.bottomLeft,
                   child: Container(
                     margin: EdgeInsets.all(8.r),
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 4.h,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColor.black111214.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(10.r),
@@ -734,7 +752,7 @@ class FitTrackerView extends StatelessWidget {
               keyboardType: TextInputType.number,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Enter 4-digit PIN',
+                hintText: 'Enter Gallery PIN',
                 hintStyle: TextStyle(color: AppColor.gray9CA3AF),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColor.gray9CA3AF),
@@ -758,7 +776,8 @@ class FitTrackerView extends StatelessWidget {
             ),
             onPressed: () {
               final entered = ctrl.text.trim();
-              final currentSavedPin = storage.read<String>('gallery_password') ?? '1234';
+              final currentSavedPin =
+                  storage.read<String>('gallery_password') ?? '1234';
 
               if (entered == currentSavedPin) {
                 Get.back();
@@ -862,7 +881,10 @@ class FitTrackerView extends StatelessWidget {
           final s = t.toLowerCase().trim();
           if (s.contains('back') || s.contains('rear')) {
             return ProgressType.back;
-          } else if (s.contains('side') || s.contains('lateral') || s.contains('left') || s.contains('right')) {
+          } else if (s.contains('side') ||
+              s.contains('lateral') ||
+              s.contains('left') ||
+              s.contains('right')) {
             return ProgressType.side;
           } else {
             return ProgressType.front;
@@ -1264,7 +1286,11 @@ class NutriTrackView extends StatelessWidget {
                       () => MealIdeasPage(),
                       transition: Transition.rightToLeft,
                     ),
-                    icon: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+                    icon: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                     label: Text(
                       "Scan Another Meal",
                       style: AppTextStyles.poppinsBold.copyWith(
@@ -1325,7 +1351,10 @@ class NutriTrackView extends StatelessWidget {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.customPurple,
-                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24.w,
+                      vertical: 12.h,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16.r),
                     ),

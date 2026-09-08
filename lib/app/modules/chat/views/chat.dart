@@ -130,15 +130,15 @@ class ChatScreen extends StatelessWidget {
 
             return Row(
               children: [
-                GestureDetector(
-                  onTap: () => Get.back(),
-                  child: const Icon(
-                    Icons.arrow_back_ios,
-                    color: AppColor.white,
-                    size: 24,
-                  ),
-                ),
-                SizedBox(width: 10.w),
+                // GestureDetector(
+                //   onTap: () => Get.back(),
+                //   child: const Icon(
+                //     Icons.arrow_back_ios,
+                //     color: AppColor.white,
+                //     size: 24,
+                //   ),
+                // ),
+                // SizedBox(width: 10.w),
                 CircleAvatar(
                   radius: 20.r,
                   backgroundImage: AssetImage(assistantImagePath),
@@ -213,9 +213,7 @@ class ChatScreen extends StatelessWidget {
                             children: [
                               CircleAvatar(
                                 radius: 16.r,
-                                backgroundImage: AssetImage(
-                                  assistantImagePath,
-                                ),
+                                backgroundImage: AssetImage(assistantImagePath),
                                 backgroundColor: AppColor.customPurple,
                               ),
                               SizedBox(width: 10.w),
