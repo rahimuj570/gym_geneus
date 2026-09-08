@@ -10,24 +10,46 @@ import 'package:http/http.dart' as http;
 import '../../../../main.dart';
 import 'appconstants.dart';
 
+// ------------------------ Notification Channel ------------------------
+const AndroidNotificationChannel defaultNotificationChannel =
+    AndroidNotificationChannel(
+  'default_channel', // id
+  'Default Channel', // title
+  description: 'This channel is used for important notifications.',
+  importance: Importance.max,
+  playSound: true,
+);
+
 // ------------------------ Local Notifications ------------------------
 Future<void> initLocalNotifications() async {
   // Android settings
   const AndroidInitializationSettings androidSettings =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
   // iOS settings
-  final DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
+  const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
     requestAlertPermission: true,
     requestBadgePermission: true,
     requestSoundPermission: true,
   );
 
   // Initialization for both platforms
-  final InitializationSettings initializationSettings = InitializationSettings(
+  const InitializationSettings initializationSettings = InitializationSettings(
     android: androidSettings,
     iOS: iosSettings,
   );
+
+  final androidPlugin = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
+
+  // Create notification channel for Android 8.0+
+  if (androidPlugin != null) {
+    await androidPlugin.createNotificationChannel(defaultNotificationChannel);
+    // Request permission for Android 13+
+    await androidPlugin.requestNotificationsPermission();
+  }
 
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
@@ -40,14 +62,26 @@ Future<void> initLocalNotifications() async {
 
 // ------------------------ Show Notification ------------------------
 Future<void> showNotification(RemoteMessage message) async {
+  final String title =
+      message.notification?.title ??
+      message.data['title'] ??
+      'Notification';
+  final String body =
+      message.notification?.body ??
+      message.data['body'] ??
+      '';
+
   final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-    'default_channel', // channel id
-    'Default Channel',
+    defaultNotificationChannel.id,
+    defaultNotificationChannel.name,
+    channelDescription: defaultNotificationChannel.description,
     importance: Importance.max,
     priority: Priority.high,
+    playSound: true,
+    icon: '@mipmap/ic_launcher',
   );
 
-  final DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+  const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
     presentAlert: true,
     presentBadge: true,
     presentSound: true,
@@ -58,12 +92,16 @@ Future<void> showNotification(RemoteMessage message) async {
     iOS: iosDetails,
   );
 
+  final int id = message.messageId != null
+      ? message.messageId.hashCode.abs()
+      : DateTime.now().millisecondsSinceEpoch.remainder(100000);
+
   await flutterLocalNotificationsPlugin.show(
-    message.notification.hashCode,
-    message.notification?.title,
-    message.notification?.body,
+    id,
+    title,
+    body,
     notificationDetails,
-    payload: message.data['payload'], // optional custom data
+    payload: message.data['payload'] ?? message.data.toString(),
   );
 }
 
@@ -71,11 +109,18 @@ Future<void> showNotification(RemoteMessage message) async {
 Future<void> initFCM() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-  // Initialize local notifications
+  // Initialize local notifications and channels
   await initLocalNotifications();
 
-  // Request permissions for notifications
+  // Request permissions for notifications (iOS & Web)
   NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  // Enable foreground notification presentation on iOS
+  await messaging.setForegroundNotificationPresentationOptions(
     alert: true,
     badge: true,
     sound: true,
@@ -97,9 +142,9 @@ Future<void> initFCM() async {
     await sendTokenToBackend(token);
   }
 
-  // Foreground messages
+  // Foreground messages listener
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print("📥 Foreground notification: ${message.notification?.title}");
+    print("📥 Foreground notification received: ${message.notification?.title ?? message.data['title']}");
     showNotification(message);
   });
 

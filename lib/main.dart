@@ -11,6 +11,7 @@ import 'package:kenzeno/app/modules/home/controllers/searchcontroller.dart';
 import 'package:toastification/toastification.dart';
 
 import 'app/modules/workout/views/excercisedetails.dart';
+import 'app/constants/push_notification.dart';
 import 'firebase_options.dart';
 
 import 'app/modules/auth/controllers/authcontroller.dart';
@@ -67,34 +68,17 @@ void main() async {
     print('❌ Firebase init failed: $e');
   }
 
-  // 3. Set background message handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  const DarwinInitializationSettings initializationSettingsIOS =
-      DarwinInitializationSettings(
-        requestSoundPermission: true,
-        requestBadgePermission: true,
-        requestAlertPermission: true,
-      );
-
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsIOS,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse response) {
-      // Handle notification tapped logic here
-      print('Notification tapped: ${response.payload}');
-    },
-  );
-  // 5. Other initializations
+  // 3. Storage and system setup
   await GetStorage.init();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  // 4. Set background message handler and initialize FCM
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  try {
+    await initFCM();
+  } catch (e) {
+    print("⚠️ FCM init error on startup: $e");
+  }
 
   runApp(const MyApp());
 }
