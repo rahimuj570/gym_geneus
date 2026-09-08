@@ -102,7 +102,9 @@ class More extends StatelessWidget {
 
                       // Birthday
                       Text(
-                        profile.dateOfBirth == null
+                        (profile.dateOfBirth == null ||
+                                profile.dateOfBirth!.trim().isEmpty ||
+                                profile.dateOfBirth == 'null')
                             ? "Birthday: Not set"
                             : "Birthday: ${_formatBirthday(profile.dateOfBirth!)}",
                         style: AppTextStyles.poppinsRegular.copyWith(

@@ -26,9 +26,11 @@ class ArticlePage extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final isDobMissing = profileController?.profile.value == null ||
-            profileController?.profile.value?.dateOfBirth == null ||
-            profileController!.profile.value!.dateOfBirth!.trim().isEmpty;
+        final profile = profileController?.profile.value;
+        final isDobMissing = profileController != null &&
+            !profileController.isLoading.value &&
+            (profile?.id != null || profile?.email != null) &&
+            (profile?.isDateOfBirthMissing ?? false);
 
         if (controller.articles.isEmpty) {
           return Center(

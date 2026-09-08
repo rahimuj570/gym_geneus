@@ -46,9 +46,27 @@ class ProfileModel {
   bool get hasMissingProfileFields =>
       missingProfileFields != null && missingProfileFields!.isNotEmpty;
 
+  bool get isDateOfBirthMissing {
+    if (missingProfileFields != null) {
+      final isMarkedMissing = missingProfileFields!.any((field) {
+        final f = field.toLowerCase().trim();
+        return f == 'date_of_birth' || f == 'dob' || f == 'birth_date';
+      });
+      if (isMarkedMissing) return true;
+      return false;
+    }
+    final hasDob = dateOfBirth != null &&
+        dateOfBirth!.trim().isNotEmpty &&
+        dateOfBirth != 'null';
+    final hasAge = age != null && age! > 0;
+    return !hasDob && !hasAge;
+  }
+
+  bool get hasDateOfBirth => !isDateOfBirthMissing;
+
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
     return ProfileModel(
-      id: json['id'] as String?,
+      id: json['id']?.toString(),
       email: json['email'] as String?,
       phoneNumber: json['phone_number'] as String?,
       avatar: _getFullImageUrl(json['avatar'] as String?), // Fixed here
@@ -56,15 +74,26 @@ class ProfileModel {
       gender: json['gender'] as String?,
       age: json['age'] is int
           ? json['age'] as int?
-          : int.tryParse(json['age'].toString()),
-      dateOfBirth: json['date_of_birth'] as String?,
+          : int.tryParse(json['age']?.toString() ?? ''),
+      dateOfBirth: _parseDateOfBirth(
+        json['date_of_birth'] ??
+            json['dob'] ??
+            json['birth_date'] ??
+            json['dateOfBirth'] ??
+            json['birthdate'] ??
+            (json['user'] is Map
+                ? (json['user']['date_of_birth'] ??
+                    json['user']['dob'] ??
+                    json['user']['birth_date'])
+                : null),
+      ),
       heightCm: _parseDouble(json['height_cm']),
       weightKg: _parseDouble(json['weight_kg']),
       goal: json['goal'] as String?,
       activityLevel: json['activity_level'] as String?,
       coachType: json['coach_type'] is int
           ? json['coach_type'] as int?
-          : int.tryParse(json['coach_type'].toString()),
+          : int.tryParse(json['coach_type']?.toString() ?? ''),
       preferredWorkoutTime: json['preferred_workout_time'] as String?,
       preferredWorkoutDays: json['preferred_workout_days'] == null
           ? null
@@ -83,6 +112,13 @@ class ProfileModel {
                   .toList()
               : null),
     );
+  }
+
+  static String? _parseDateOfBirth(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty || str == 'null' || str == '0000-00-00') return null;
+    return str;
   }
 
   // Add this static helper at the bottom of profile_model.dart

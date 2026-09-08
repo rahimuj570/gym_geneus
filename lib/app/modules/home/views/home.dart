@@ -27,7 +27,9 @@ import 'notification.dart';
 
 class HomeScreen extends StatelessWidget {
   final controller = Get.put(HomeController());
-  final profileController = Get.find<ProfileController>();
+  final profileController = Get.isRegistered<ProfileController>()
+      ? Get.find<ProfileController>()
+      : Get.put(ProfileController());
 
   HomeScreen({Key? key}) : super(key: key);
 
@@ -892,10 +894,10 @@ class HomeScreen extends StatelessWidget {
         ),
         SizedBox(height: 16.h),
         Obx(() {
-          final isDobMissing =
-              profileController.profile.value == null ||
-              profileController.profile.value?.dateOfBirth == null ||
-              profileController.profile.value!.dateOfBirth!.trim().isEmpty;
+          final profile = profileController.profile.value;
+          final isDobMissing = !profileController.isLoading.value &&
+              (profile.id != null || profile.email != null) &&
+              profile.isDateOfBirthMissing;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
