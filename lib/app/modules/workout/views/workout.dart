@@ -14,10 +14,12 @@ import '../../../widgets/daytrainningcard.dart';
 import '../../setting/widgets/trainnigstep.dart';
 import '../controllers/workoutcontroller.dart';
 
+import 'package:kenzeno/app/modules/home/views/notification.dart';
+import 'package:kenzeno/app/modules/setting/views/profile.dart';
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
 
 class Workout extends StatelessWidget {
-  Workout({super.key});
+  const Workout({super.key});
 
   Widget _buildTabBar(WorkoutController controller) {
     return Padding(
@@ -80,9 +82,26 @@ class Workout extends StatelessWidget {
           ),
         ),
         actions: [
-          SvgPicture.asset(ImageAssets.svg38, height: 20.h),
-          SizedBox(width: 15.w),
-          SvgPicture.asset(ImageAssets.svg39, height: 20.h),
+          GestureDetector(
+            onTap: () => Get.to(
+              () => const NotificationScreen(),
+              transition: Transition.fadeIn,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(8.w),
+              child: SvgPicture.asset(ImageAssets.svg38, height: 20.h),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => Get.to(
+              () => MyProfileEditScreen(),
+              transition: Transition.rightToLeft,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(8.w),
+              child: SvgPicture.asset(ImageAssets.svg39, height: 20.h),
+            ),
+          ),
           SizedBox(width: 10.w),
         ],
         bottom: PreferredSize(
