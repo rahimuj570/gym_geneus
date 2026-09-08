@@ -27,6 +27,9 @@ class GalleryController extends GetxController {
   var dashboardData = Rxn<GalleryDashboardResponse>();
   var currentMonth = DateTime.now().obs;
   var galleryImages = <GalleryImage>[].obs;
+  var comparisonData = Rxn<GalleryComparisonResponse>();
+  var selectedComparisonType = 'front'.obs;
+  var isLoadingComparison = false.obs;
 
   // Image Picker
   final ImagePicker _picker = ImagePicker();
@@ -34,18 +37,19 @@ class GalleryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    print('📦 [GalleryController] Initialized. Fetching gallery dashboard and images...');
+    print('📦 [GalleryController] Initialized. Fetching gallery dashboard, images, and comparison...');
     fetchGalleryDashboard();
     fetchGalleryImages(); // Load current month
+    fetchGalleryComparison();
   }
 
   /// Fetch FitTracker dashboard (calendar + photos + streak)
-  Future<void> fetchGalleryDashboard({int? month, int? year}) async {
+  Future<void> fetchGalleryDashboard({int? month, int? year, bool silent = false}) async {
     try {
-      isLoading(true);
-      final m = month ?? DateTime.now().month;
-      final y = year ?? DateTime.now().year;
-      print('🔄 [GalleryController] Fetching dashboard for month: $m, year: $y');
+      if (!silent) isLoading(true);
+      final m = month ?? currentMonth.value.month;
+      final y = year ?? currentMonth.value.year;
+      print('🔄 [GalleryController] Fetching dashboard for month: $m, year: $y (silent: $silent)');
 
       final response = await _homeService.fetchGalleryDashboard(
         month: m,
@@ -57,26 +61,28 @@ class GalleryController extends GetxController {
       print('✅ [GalleryController] Dashboard loaded. Total images: ${response.totalImages}, streak: ${response.consecutiveDaysStreak}');
     } catch (e) {
       print('❌ [GalleryController] Error fetching dashboard: $e');
-      toastification.show(
-        type: ToastificationType.error,
-        style: ToastificationStyle.fillColored,
-        primaryColor: Colors.red,
-        foregroundColor: Colors.white,
-        title: Text(
-          "Error",
-          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
-        ),
-        description: Text(
-          e.toString(),
-          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
-        ),
-        alignment: Alignment.topRight,
-        autoCloseDuration: const Duration(seconds: 4),
-        borderRadius: BorderRadius.circular(12),
-        showProgressBar: true,
-      );
+      if (!silent) {
+        toastification.show(
+          type: ToastificationType.error,
+          style: ToastificationStyle.fillColored,
+          primaryColor: Colors.red,
+          foregroundColor: Colors.white,
+          title: Text(
+            "Error",
+            style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+          ),
+          description: Text(
+            e.toString(),
+            style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+          ),
+          alignment: Alignment.topRight,
+          autoCloseDuration: const Duration(seconds: 4),
+          borderRadius: BorderRadius.circular(12),
+          showProgressBar: true,
+        );
+      }
     } finally {
-      isLoading(false);
+      if (!silent) isLoading(false);
     }
   }
 
@@ -124,11 +130,11 @@ class GalleryController extends GetxController {
       final bytes = await pickedFile.readAsBytes();
       print('🔄 [GalleryController] Uploading progress photo (${bytes.length} bytes)...');
 
-      final success = await _homeService.uploadProgressPhoto(
+      final uploadResult = await _homeService.uploadProgressPhoto(
         imageBytes: bytes, // ← just the raw bytes
       );
 
-      if (success) {
+      if (uploadResult != null) {
         print('✅ [GalleryController] Photo uploaded successfully.');
         toastification.show(
           type: ToastificationType.info,
@@ -149,8 +155,15 @@ class GalleryController extends GetxController {
           showProgressBar: true,
         );
 
-        await fetchGalleryDashboard();
-        await fetchGalleryImages();
+        // Immediate fetch to render the newly uploaded photo right away
+        await Future.wait([
+          fetchGalleryDashboard(silent: true),
+          fetchGalleryImages(silent: true),
+          fetchGalleryComparison(silent: true),
+        ]);
+
+        // Background auto-refresh polling so AI detected pose/type updates without manual refresh
+        _pollForAIClassification();
       } else {
         throw Exception("Upload failed – server rejected");
       }
@@ -179,10 +192,47 @@ class GalleryController extends GetxController {
     }
   }
 
-  Future<void> fetchGalleryImages() async {
+  /// Automatically polls in intervals after upload to fetch the AI-classified image type without screen flicker
+  void _pollForAIClassification() {
+    final intervals = [1000, 2500, 4500];
+    for (final ms in intervals) {
+      Future.delayed(Duration(milliseconds: ms), () async {
+        try {
+          await Future.wait([
+            fetchGalleryDashboard(silent: true),
+            fetchGalleryImages(silent: true),
+            fetchGalleryComparison(silent: true),
+          ]);
+          print('🔄 [GalleryController] AI classification auto-update checked at ${ms}ms');
+        } catch (e) {
+          print('⚠️ [GalleryController] AI auto-update error at ${ms}ms: $e');
+        }
+      });
+    }
+  }
+
+  Future<void> fetchGalleryComparison({bool silent = false}) async {
     try {
-      isLoading(true);
-      print('🔄 [GalleryController] Fetching all gallery images...');
+      if (!silent) isLoadingComparison(true);
+      print('🔄 [GalleryController] Fetching gallery comparison (silent: $silent)...');
+      final comp = await _homeService.fetchGalleryComparison();
+      comparisonData.value = comp;
+      print('✅ [GalleryController] Loaded gallery comparison successfully.');
+    } catch (e) {
+      print('❌ [GalleryController] Error fetching comparison: $e');
+    } finally {
+      if (!silent) isLoadingComparison(false);
+    }
+  }
+
+  void selectComparisonType(String type) {
+    selectedComparisonType.value = type.toLowerCase();
+  }
+
+  Future<void> fetchGalleryImages({bool silent = false}) async {
+    try {
+      if (!silent) isLoading(true);
+      print('🔄 [GalleryController] Fetching all gallery images (silent: $silent)...');
       final images = await _homeService.fetchAllGalleryImages();
       // Sort newest first
       images.sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt));
@@ -190,26 +240,28 @@ class GalleryController extends GetxController {
       print('✅ [GalleryController] Loaded ${images.length} gallery images.');
     } catch (e) {
       print('❌ [GalleryController] Error fetching gallery images: $e');
-      toastification.show(
-        type: ToastificationType.error,
-        style: ToastificationStyle.fillColored,
-        primaryColor: Colors.red,
-        foregroundColor: Colors.white,
-        title: Text(
-          "Error",
-          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
-        ),
-        description: Text(
-          "Failed to load gallery",
-          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
-        ),
-        alignment: Alignment.topRight,
-        autoCloseDuration: const Duration(seconds: 4),
-        borderRadius: BorderRadius.circular(12),
-        showProgressBar: true,
-      );
+      if (!silent) {
+        toastification.show(
+          type: ToastificationType.error,
+          style: ToastificationStyle.fillColored,
+          primaryColor: Colors.red,
+          foregroundColor: Colors.white,
+          title: Text(
+            "Error",
+            style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+          ),
+          description: Text(
+            "Failed to load gallery",
+            style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+          ),
+          alignment: Alignment.topRight,
+          autoCloseDuration: const Duration(seconds: 4),
+          borderRadius: BorderRadius.circular(12),
+          showProgressBar: true,
+        );
+      }
     } finally {
-      isLoading(false);
+      if (!silent) isLoading(false);
     }
   }
 
@@ -221,15 +273,13 @@ class GalleryController extends GetxController {
     final types = dashboardData.value!.dateImageTypes[key] ?? [];
 
     return types.map((typeStr) {
-      switch (typeStr.toLowerCase()) {
-        case 'front':
-          return ProgressType.front;
-        case 'side':
-          return ProgressType.side;
-        case 'back':
-          return ProgressType.back;
-        default:
-          return ProgressType.front;
+      final s = typeStr.toLowerCase().trim();
+      if (s.contains('back') || s.contains('rear')) {
+        return ProgressType.back;
+      } else if (s.contains('side') || s.contains('lateral') || s.contains('left') || s.contains('right')) {
+        return ProgressType.side;
+      } else {
+        return ProgressType.front;
       }
     }).toSet();
   }

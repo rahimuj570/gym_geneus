@@ -55,7 +55,8 @@ class SetupController extends GetxController {
       if (profile.avatar != null && profile.avatar!.trim().isNotEmpty) {
         profileImagePath.value = profile.avatar!.trim();
       }
-      if (profile.phoneNumber != null && profile.phoneNumber!.trim().isNotEmpty) {
+      if (profile.phoneNumber != null &&
+          profile.phoneNumber!.trim().isNotEmpty) {
         phonenumber.value = profile.phoneNumber!.trim();
       }
     } catch (e) {
@@ -231,7 +232,7 @@ class SetupController extends GetxController {
         imageBytes: bytes, // ← just the raw bytes
       );
 
-      if (success) {
+      if (success != null) {
         toastification.show(
           type: ToastificationType.info,
           style: ToastificationStyle.fillColored,

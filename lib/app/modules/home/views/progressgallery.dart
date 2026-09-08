@@ -15,16 +15,11 @@ class ProgressGalleryPage extends StatelessWidget {
   final GalleryController controller = Get.find();
 
   Color _getColorByType(String type) {
-    switch (type.toLowerCase()) {
-      case 'front':
-        return AppColor.customPurple;
-      case 'side':
-        return AppColor.green22C55E;
-      case 'back':
-        return AppColor.cyan06B6D4;
-      default:
-        return AppColor.gray9CA3AF;
-    }
+    final t = type.toLowerCase().trim();
+    if (t.contains('back') || t.contains('rear')) return AppColor.cyan06B6D4;
+    if (t.contains('side') || t.contains('lateral') || t.contains('left') || t.contains('right')) return AppColor.green22C55E;
+    if (t.contains('front')) return AppColor.customPurple;
+    return AppColor.gray9CA3AF;
   }
 
   @override
@@ -76,9 +71,7 @@ class ProgressGalleryPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final img = controller.galleryImages[index];
               final date = DateFormat('MMM dd, yyyy').format(img.uploadedAt);
-              final type = img.imageType.isEmpty
-                  ? "Detecting..."
-                  : img.imageType.capitalizeFirst!;
+              final type = img.progressType.label;
 
               return GestureDetector(
                 onTap: () {

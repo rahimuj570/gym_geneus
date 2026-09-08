@@ -490,7 +490,7 @@ class HomeService extends GetxService {
 
   // In your HomeService class
   // HomeService.dart — FINAL VERSION
-  Future<bool> uploadProgressPhoto({required Uint8List imageBytes}) async {
+  Future<Map<String, dynamic>?> uploadProgressPhoto({required Uint8List imageBytes}) async {
     final token = box.read("loginToken");
     if (token == null) throw Exception("Login required");
 
@@ -526,10 +526,21 @@ class HomeService extends GetxService {
         responseBody: response.body,
       );
 
-      return response.statusCode == 200 || response.statusCode == 201;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+          if (decoded is Map<String, dynamic>) {
+            return decoded;
+          }
+          return {'success': true};
+        } catch (_) {
+          return {'success': true};
+        }
+      }
+      return null;
     } catch (e) {
       print("Upload error: $e");
-      return false;
+      return null;
     }
   }
 
@@ -566,6 +577,43 @@ class HomeService extends GetxService {
       try {
         final error = jsonDecode(response.body);
         throw Exception(error['detail'] ?? error['message'] ?? "Failed to load gallery images (${response.statusCode})");
+      } catch (e) {
+        if (e is Exception && !e.toString().contains('FormatException')) rethrow;
+        throw Exception("Server error (${response.statusCode}): ${response.body}");
+      }
+    }
+  }
+
+  Future<GalleryComparisonResponse> fetchGalleryComparison() async {
+    final token = box.read("loginToken");
+    if (token == null) throw Exception("Login required");
+
+    final url = "${AppConstants.baseUrl}/gallery/comparison/";
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+    );
+
+    FlutterDebugLogger.printJsonResponse(
+      url: url,
+      method: Method.GET,
+      tag: 'Gallery-Comparison',
+      statusCode: response.statusCode,
+      responseBody: response.body,
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
+      return GalleryComparisonResponse.fromJson(json as Map<String, dynamic>);
+    } else {
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(
+          error['detail'] ??
+              error['message'] ??
+              "Failed to load comparison (${response.statusCode})",
+        );
       } catch (e) {
         if (e is Exception && !e.toString().contains('FormatException')) rethrow;
         throw Exception("Server error (${response.statusCode}): ${response.body}");

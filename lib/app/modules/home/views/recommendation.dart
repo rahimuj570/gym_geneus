@@ -1,5 +1,3 @@
-// lib/app/modules/workout/views/recommendation.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -7,9 +5,7 @@ import 'package:kenzeno/app/modules/home/controllers/homecontroller.dart';
 import 'package:kenzeno/app/modules/workout/controllers/workoutcontroller.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
-import '../../../res/assets/asset.dart';
 import '../../../widgets/backbutton_widget.dart';
-import '../../../widgets/daytrainningcard.dart';
 import '../../../widgets/workoutcard.dart';
 
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';

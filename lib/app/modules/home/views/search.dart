@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:kenzeno/app/modules/home/controllers/searchcontroller.dart';
 import 'package:kenzeno/app/modules/workout/controllers/workoutcontroller.dart';
-import 'package:kenzeno/app/modules/workout/views/workoutdetails.dart';
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
 import 'package:kenzeno/app/modules/home/views/articledetails.dart';
 import '../../../res/assets/asset.dart';

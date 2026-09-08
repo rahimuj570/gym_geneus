@@ -234,50 +234,299 @@ class FitTrackerView extends StatelessWidget {
   }
 
   Widget _buildComparisonCard() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-      padding: EdgeInsets.all(20.r),
-      decoration: BoxDecoration(
-        color: AppColor.gray9CA3AF.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Side-by-Side Comparison',
-                style: AppTextStyles.poppinsBold.copyWith(
+    final controller = Get.find<GalleryController>();
+
+    return Obx(() {
+      final compData = controller.comparisonData.value;
+      final selectedType = controller.selectedComparisonType.value;
+      final currentTypeComp = compData?.getForType(selectedType);
+
+      final first = currentTypeComp?.first;
+      final last = currentTypeComp?.last;
+
+      String typeLabel = selectedType.isNotEmpty
+          ? selectedType[0].toUpperCase() + selectedType.substring(1)
+          : 'Front';
+
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+        padding: EdgeInsets.all(20.r),
+        decoration: BoxDecoration(
+          color: AppColor.gray9CA3AF.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header + Angle Selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Side-by-Side Comparison',
+                  style: AppTextStyles.poppinsBold.copyWith(
+                    color: AppColor.white,
+                    fontSize: 16.sp,
+                  ),
+                ),
+                SvgPicture.asset(
+                  ImageAssets.svg46,
+                  height: 20.h,
                   color: AppColor.white,
-                  fontSize: 16.sp,
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+
+            // Angle Tabs: Front | Side | Back
+            Row(
+              children: ['front', 'side', 'back'].map((type) {
+                final isSelected = selectedType.toLowerCase() == type;
+                final label = type[0].toUpperCase() + type.substring(1);
+                return Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: GestureDetector(
+                    onTap: () => controller.selectComparisonType(type),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColor.customPurple
+                            : AppColor.gray1F2937,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColor.customPurple
+                              : Colors.white12,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: AppTextStyles.poppinsMedium.copyWith(
+                          color: isSelected ? Colors.white : AppColor.gray9CA3AF,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 16.h),
+
+            // Loading state
+            if (controller.isLoadingComparison.value)
+              SizedBox(
+                height: 180.h,
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppColor.customPurple),
+                ),
+              )
+            // Case 1: Both First & Last exist
+            else if (first != null && last != null) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildComparisonImage(
+                    'BEFORE',
+                    DateFormat('MMM dd').format(first.uploadedAt),
+                    first.image,
+                  ),
+                  _buildComparisonImage(
+                    'AFTER',
+                    DateFormat('MMM dd').format(last.uploadedAt),
+                    last.image,
+                  ),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      _calculateDaysDifference(first.uploadedAt, last.uploadedAt),
+                      style: AppTextStyles.poppinsBold.copyWith(
+                        color: AppColor.green22C55E,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      last.aiSummary != null && last.aiSummary!.isNotEmpty
+                          ? last.aiSummary!
+                          : 'Keep pushing forward!',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.poppinsRegular.copyWith(
+                        color: AppColor.gray9CA3AF,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SvgPicture.asset(
-                ImageAssets.svg46,
-                height: 20.h,
-                color: AppColor.white,
+            ]
+            // Case 2: Only 1 image (first != null && last == null)
+            else if (first != null && last == null) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildComparisonImage(
+                    'BEFORE',
+                    DateFormat('MMM dd').format(first.uploadedAt),
+                    first.image,
+                  ),
+                  _buildPendingComparisonSlot(typeLabel),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      '1 $typeLabel photo uploaded',
+                      style: AppTextStyles.poppinsBold.copyWith(
+                        color: AppColor.customPurple,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      'Upload another $typeLabel photo to see your transformation comparison!',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.poppinsRegular.copyWith(
+                        color: AppColor.gray9CA3AF,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ]
+            // Case 3: 0 images for this angle
+            else ...[
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.w),
+                decoration: BoxDecoration(
+                  color: AppColor.black111214.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.compare_arrows_rounded,
+                      size: 44.sp,
+                      color: AppColor.gray9CA3AF,
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'No $typeLabel photos yet',
+                      style: AppTextStyles.poppinsBold.copyWith(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      'Take a $typeLabel progress photo to start tracking your transformation.',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.poppinsRegular.copyWith(
+                        color: AppColor.gray9CA3AF,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    GestureDetector(
+                      onTap: () => _showPhotoSourceSheet(),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: AppColor.customPurple,
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.camera_alt, color: Colors.white, size: 16.sp),
+                            SizedBox(width: 6.w),
+                            Text(
+                              'Take Photo',
+                              style: AppTextStyles.poppinsBold.copyWith(
+                                color: Colors.white,
+                                fontSize: 12.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-          ),
-          SizedBox(height: 15.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildComparisonImage('BEFORE', 'Dec 1', ImageAssets.img_21),
-              _buildComparisonImage('AFTER', 'Jan 8', ImageAssets.img_21),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            '38 days progress',
-            style: AppTextStyles.poppinsBold.copyWith(
-              color: AppColor.green22C55E,
-              fontSize: 16.sp,
+          ],
+        ),
+      );
+    });
+  }
+
+  String _calculateDaysDifference(DateTime first, DateTime last) {
+    final diff = last.difference(first).inDays.abs();
+    if (diff == 0) return 'Same day progress';
+    if (diff == 1) return '1 day progress';
+    return '$diff days progress';
+  }
+
+  Widget _buildPendingComparisonSlot(String typeLabel) {
+    return GestureDetector(
+      onTap: () => _showPhotoSourceSheet(),
+      child: Column(
+        children: [
+          Container(
+            width: 140.w,
+            height: 180.h,
+            decoration: BoxDecoration(
+              color: AppColor.black111214.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(15.r),
+              border: Border.all(
+                color: AppColor.customPurple.withOpacity(0.5),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_a_photo_outlined,
+                  color: AppColor.customPurple,
+                  size: 32.sp,
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  'Add AFTER',
+                  style: AppTextStyles.poppinsBold.copyWith(
+                    color: Colors.white,
+                    fontSize: 12.sp,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'Tap to upload',
+                  style: AppTextStyles.poppinsRegular.copyWith(
+                    color: AppColor.gray9CA3AF,
+                    fontSize: 10.sp,
+                  ),
+                ),
+              ],
             ),
           ),
+          SizedBox(height: 5.h),
           Text(
-            'Keep pushing forward!',
+            'Pending photo',
             style: AppTextStyles.poppinsRegular.copyWith(
               color: AppColor.gray9CA3AF,
               fontSize: 12.sp,
@@ -288,32 +537,56 @@ class FitTrackerView extends StatelessWidget {
     );
   }
 
-  Widget _buildComparisonImage(String title, String date, String asset) {
+  Widget _buildComparisonImage(String title, String date, String imageUrl) {
     return Column(
       children: [
-        Container(
-          width: 140.w,
-          height: 180.h,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15.r),
-            image: DecorationImage(image: AssetImage(asset), fit: BoxFit.cover),
-          ),
-          child: Align(
-            alignment: Alignment.bottomLeft,
-            child: Container(
-              margin: EdgeInsets.all(8.r),
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: AppColor.black111214.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Text(
-                title,
-                style: AppTextStyles.poppinsBold.copyWith(
-                  color: AppColor.white,
-                  fontSize: 12.sp,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(15.r),
+          child: Container(
+            width: 140.w,
+            height: 180.h,
+            color: Colors.black26,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageUrl.startsWith('http')
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          ImageAssets.img_21,
+                          fit: BoxFit.cover,
+                        ),
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColor.customPurple,
+                              strokeWidth: 2,
+                            ),
+                          );
+                        },
+                      )
+                    : Image.asset(imageUrl, fit: BoxFit.cover),
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Container(
+                    margin: EdgeInsets.all(8.r),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: AppColor.black111214.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Text(
+                      title,
+                      style: AppTextStyles.poppinsBold.copyWith(
+                        color: AppColor.white,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -586,15 +859,13 @@ class FitTrackerView extends StatelessWidget {
         final isCurrentMonth = day.month == month.month;
         final key = DateFormat('yyyy-MM-dd').format(day);
         final types = (dateTypes[key] ?? []).map((t) {
-          switch (t.toLowerCase()) {
-            case 'front':
-              return ProgressType.front;
-            case 'side':
-              return ProgressType.side;
-            case 'back':
-              return ProgressType.back;
-            default:
-              return ProgressType.front;
+          final s = t.toLowerCase().trim();
+          if (s.contains('back') || s.contains('rear')) {
+            return ProgressType.back;
+          } else if (s.contains('side') || s.contains('lateral') || s.contains('left') || s.contains('right')) {
+            return ProgressType.side;
+          } else {
+            return ProgressType.front;
           }
         }).toSet();
 
@@ -745,176 +1016,187 @@ class FitTrackerView extends StatelessWidget {
         );
       }
 
-      return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Stats
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-              child: Row(
-                children: [
-                  _buildStatCard(
-                    'Photos',
-                    '${data.totalImages}',
-                    '+${data.imagesLastWeek} this week',
-                    Icons.camera_alt,
-                    AppColor.green22C55E,
-                  ),
-                  SizedBox(width: 20.w),
-                  _buildStatCard(
-                    'Streak',
-                    '${data.consecutiveDaysStreak}',
-                    'days active',
-                    Icons.local_fire_department,
-                    AppColor.orangeF97316,
-                  ),
-                ],
-              ),
-            ),
-
-            // Calendar Header
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    DateFormat('MMMM yyyy').format(month),
-                    style: AppTextStyles.poppinsBold.copyWith(
-                      color: AppColor.white,
-                      fontSize: 18.sp,
+      return RefreshIndicator(
+        color: AppColor.customPurple,
+        onRefresh: () async {
+          await Future.wait([
+            controller.fetchGalleryDashboard(),
+            controller.fetchGalleryImages(),
+            controller.fetchGalleryComparison(),
+          ]);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Stats
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                child: Row(
+                  children: [
+                    _buildStatCard(
+                      'Photos',
+                      '${data.totalImages}',
+                      '+${data.imagesLastWeek} this week',
+                      Icons.camera_alt,
+                      AppColor.green22C55E,
                     ),
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios,
-                          size: 18,
-                          color: AppColor.white,
-                        ),
-                        onPressed: () => controller.changeMonth(-1),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 18,
-                          color: AppColor.white,
-                        ),
-                        onPressed: () => controller.changeMonth(1),
-                      ),
-                    ],
-                  ),
-                ],
+                    SizedBox(width: 20.w),
+                    _buildStatCard(
+                      'Streak',
+                      '${data.consecutiveDaysStreak}',
+                      'Days active',
+                      Icons.local_fire_department,
+                      AppColor.customPurple,
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            // Weekdays
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Row(
-                children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                    .map(
-                      (d) => Expanded(
-                        child: Center(
-                          child: Text(
-                            d,
-                            style: AppTextStyles.poppinsSemiBold.copyWith(
-                              color: AppColor.gray9CA3AF,
-                              fontSize: 14.sp,
+              // Month Selector
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      DateFormat('MMMM yyyy').format(month),
+                      style: AppTextStyles.poppinsBold.copyWith(
+                        color: AppColor.white,
+                        fontSize: 20.sp,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios,
+                            size: 18,
+                            color: AppColor.white,
+                          ),
+                          onPressed: () => controller.changeMonth(-1),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 18,
+                            color: AppColor.white,
+                          ),
+                          onPressed: () => controller.changeMonth(1),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Weekdays
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Row(
+                  children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                      .map(
+                        (d) => Expanded(
+                          child: Center(
+                            child: Text(
+                              d,
+                              style: AppTextStyles.poppinsSemiBold.copyWith(
+                                color: AppColor.gray9CA3AF,
+                                fontSize: 14.sp,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    )
-                    .toList(),
+                      )
+                      .toList(),
+                ),
               ),
-            ),
 
-            // Calendar Grid
-            _buildCalendarGrid(month, data.dateImageTypes),
+              // Calendar Grid
+              _buildCalendarGrid(month, data.dateImageTypes),
 
-            // Legend
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: ProgressType.values
-                    .map(
-                      (t) => Row(
-                        children: [
-                          Container(
-                            width: 10.w,
-                            height: 10.w,
-                            decoration: BoxDecoration(
-                              color: t.getColor(colorMap),
-                              shape: BoxShape.circle,
+              // Legend
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: ProgressType.values
+                      .map(
+                        (t) => Row(
+                          children: [
+                            Container(
+                              width: 10.w,
+                              height: 10.w,
+                              decoration: BoxDecoration(
+                                color: t.getColor(colorMap),
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 6.w),
-                          Text(
-                            t.label,
-                            style: AppTextStyles.poppinsRegular.copyWith(
-                              color: AppColor.white,
-                              fontSize: 12.sp,
+                            SizedBox(width: 6.w),
+                            Text(
+                              t.label,
+                              style: AppTextStyles.poppinsRegular.copyWith(
+                                color: AppColor.white,
+                                fontSize: 12.sp,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                    .toList(),
+                          ],
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
-            ),
 
-            // Gallery
-            Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 10.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Progress Gallery',
-                    style: AppTextStyles.poppinsBold.copyWith(
-                      color: AppColor.white,
-                      fontSize: 18.sp,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _showPasswordDialog(context),
-                    child: Text(
-                      'View All',
-                      style: AppTextStyles.poppinsSemiBold.copyWith(
-                        color: AppColor.green22C55E,
-                        fontSize: 14.sp,
+              // Gallery
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 10.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Progress Gallery',
+                      style: AppTextStyles.poppinsBold.copyWith(
+                        color: AppColor.white,
+                        fontSize: 18.sp,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Row(
-                children: data.latestImages
-                    .map(
-                      (img) => _buildGalleryItem(
-                        DateFormat('MMM dd').format(img.uploadedAt),
-                        img.progressType.label,
-                        img.imageUrl,
-                        img.progressType.getColor(colorMap),
+                    GestureDetector(
+                      onTap: () => _showPasswordDialog(context),
+                      child: Text(
+                        'View All',
+                        style: AppTextStyles.poppinsSemiBold.copyWith(
+                          color: AppColor.green22C55E,
+                          fontSize: 14.sp,
+                        ),
                       ),
-                    )
-                    .toList(),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Row(
+                  children: data.latestImages
+                      .map(
+                        (img) => _buildGalleryItem(
+                          DateFormat('MMM dd').format(img.uploadedAt),
+                          img.progressType.label,
+                          img.imageUrl,
+                          img.progressType.getColor(colorMap),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
 
-            SizedBox(height: 20.h),
-            _buildComparisonCard(),
-            _buildTakePhotoButton(),
-            SizedBox(height: 40.h),
-          ],
+              SizedBox(height: 20.h),
+              _buildComparisonCard(),
+              _buildTakePhotoButton(),
+              SizedBox(height: 40.h),
+            ],
+          ),
         ),
       );
     });
