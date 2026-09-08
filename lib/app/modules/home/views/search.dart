@@ -6,6 +6,7 @@ import 'package:kenzeno/app/modules/home/controllers/searchcontroller.dart';
 import 'package:kenzeno/app/modules/workout/controllers/workoutcontroller.dart';
 import 'package:kenzeno/app/modules/workout/views/workoutdetails.dart';
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
+import 'package:kenzeno/app/modules/home/views/articledetails.dart';
 import '../../../res/assets/asset.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
@@ -281,7 +282,11 @@ class SearchScreen extends StatelessWidget {
                         id: article.id,
                       ),
                       onTap: () {
-                        // Navigation to article details if available
+                        Get.to(
+                          () => const ArticleDetailPage(),
+                          arguments: article.id,
+                          transition: Transition.rightToLeft,
+                        );
                       },
                       duration: '',
                       calories: '',
