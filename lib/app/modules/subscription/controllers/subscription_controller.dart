@@ -41,11 +41,23 @@ class SubscriptionController extends GetxController {
   final isLoading = false.obs;
   final isSubscribed = false.obs;
   final activePlan = 'free'.obs; // 'free', 'monthly', 'yearly', 'trial'
+  final selectedPlanIndex = 0.obs;
 
   /// Parsed plans for UI display
   final availablePlans = <SubscriptionPlanItem>[].obs;
 
   Offerings? currentOfferings;
+  bool _isConfigured = false;
+
+  /// Currently selected plan based on selectedPlanIndex
+  SubscriptionPlanItem? get selectedPlan {
+    if (availablePlans.isEmpty) return null;
+    if (selectedPlanIndex.value >= 0 &&
+        selectedPlanIndex.value < availablePlans.length) {
+      return availablePlans[selectedPlanIndex.value];
+    }
+    return availablePlans.first;
+  }
 
   @override
   void onInit() {
@@ -53,8 +65,24 @@ class SubscriptionController extends GetxController {
     final box = GetStorage();
     isSubscribed.value = box.read<bool>('is_subscribed') ?? false;
     activePlan.value = box.read<String>('active_plan') ?? 'free';
-    availablePlans.assignAll(_getDefaultPlans());
+    
+    // Set fallback default plans initially
+    final defaults = _getDefaultPlans();
+    availablePlans.assignAll(defaults);
+    
+    // Default selected to yearly/best value if available
+    final defaultBestIndex = defaults.indexWhere((p) => p.isBestValue);
+    if (defaultBestIndex != -1) {
+      selectedPlanIndex.value = defaultBestIndex;
+    }
+
     _initRevenueCat();
+  }
+
+  void selectPlan(int index) {
+    if (index >= 0 && index < availablePlans.length) {
+      selectedPlanIndex.value = index;
+    }
   }
 
   List<SubscriptionPlanItem> _getDefaultPlans() {
@@ -92,6 +120,17 @@ class SubscriptionController extends GetxController {
     ];
   }
 
+  Future<bool> _isRevenueCatReady() async {
+    if (GetPlatform.isWeb || GetPlatform.isWindows || GetPlatform.isLinux) {
+      return false;
+    }
+    try {
+      return await Purchases.isConfigured;
+    } catch (_) {
+      return _isConfigured;
+    }
+  }
+
   Future<void> _initRevenueCat() async {
     try {
       if (GetPlatform.isWeb || GetPlatform.isWindows || GetPlatform.isLinux) {
@@ -101,34 +140,39 @@ class SubscriptionController extends GetxController {
         return;
       }
 
-      final appleKey =
-          dotenv.env['REVENUECAT_APPLE_PUBLIC_KEY'] ??
-          'appl_yYoLjFEpMdLLrNXuRnIzJHPqLNO';
-      final googleKey =
-          dotenv.env['REVENUECAT_GOOGLE_PUBLIC_KEY'] ??
-          'goog_jdEwpzQbkTOdwlEHFUtESByudGf';
-      final testKey =
-          dotenv.env['REVENUECAT_TEST_PUBLIC_KEY'] ??
-          'test_NvNhmyLkEIisARtCdrQnSsPBywT';
+      final isAlreadyConfigured = await Purchases.isConfigured;
+      if (!isAlreadyConfigured) {
+        final appleKey = dotenv.env['REVENUECAT_APPLE_PUBLIC_KEY'] ??
+            'appl_yYoLjFEpMdLLrNXuRnIzJHPqLNO';
+        final googleKey = dotenv.env['REVENUECAT_GOOGLE_PUBLIC_KEY'] ??
+            'goog_jdEwpzQbkTOdwlEHFUtESByudGf';
+        final testKey = dotenv.env['REVENUECAT_TEST_PUBLIC_KEY'] ??
+            'test_NvNhmyLkEIisARtCdrQnSsPBywT';
 
-      String apiKey = GetPlatform.isAndroid ? googleKey : appleKey;
-      if (apiKey.isEmpty || apiKey.contains('placeholder')) {
-        apiKey = testKey;
-      }
+        String apiKey = GetPlatform.isAndroid ? googleKey : appleKey;
+        if (apiKey.isEmpty || apiKey.contains('placeholder')) {
+          apiKey = testKey;
+        }
 
-      await Purchases.setLogLevel(LogLevel.debug);
+        await Purchases.setLogLevel(LogLevel.debug);
 
-      try {
-        await Purchases.configure(
-          PurchasesConfiguration(apiKey)..appUserID = null,
-        );
-      } catch (e) {
-        print(
-          "⚠️ Billing init with primary key failed ($e). Falling back to RevenueCat Test Store Key...",
-        );
-        await Purchases.configure(
-          PurchasesConfiguration(testKey)..appUserID = null,
-        );
+        try {
+          await Purchases.configure(
+            PurchasesConfiguration(apiKey)..appUserID = null,
+          );
+          _isConfigured = true;
+          print("✅ RevenueCat configured with key: ${apiKey.substring(0, 8)}...");
+        } catch (e) {
+          print("⚠️ Primary billing key configure failed ($e). Trying test key...");
+          if (apiKey != testKey && testKey.isNotEmpty) {
+            await Purchases.configure(
+              PurchasesConfiguration(testKey)..appUserID = null,
+            );
+            _isConfigured = true;
+          }
+        }
+      } else {
+        _isConfigured = true;
       }
 
       Purchases.addCustomerInfoUpdateListener(_handleCustomerUpdate);
@@ -144,14 +188,18 @@ class SubscriptionController extends GetxController {
 
   Future<void> _refreshCustomerInfo() async {
     try {
+      if (!await _isRevenueCatReady()) return;
+
       final box = GetStorage();
       final userEmail =
           box.read<String>('registered_email') ?? box.read<String>('userEmail');
-      if (userEmail != null && userEmail.isNotEmpty) {
-        await Purchases.logIn(userEmail);
+      if (userEmail != null && userEmail.trim().isNotEmpty) {
+        final logInRes = await Purchases.logIn(userEmail.trim());
+        _updateEntitlement(logInRes.customerInfo);
+      } else {
+        final customerInfo = await Purchases.getCustomerInfo();
+        _updateEntitlement(customerInfo);
       }
-      final customerInfo = await Purchases.getCustomerInfo();
-      _updateEntitlement(customerInfo);
     } catch (e) {
       print("Refresh customer info error: $e");
     }
@@ -159,36 +207,20 @@ class SubscriptionController extends GetxController {
 
   void _handleCustomerUpdate(CustomerInfo info) {
     _updateEntitlement(info);
-    if (isSubscribed.value) {}
   }
 
   Future<void> _fetchOfferings() async {
     try {
       isLoading.value = true;
 
-      final testKey =
-          dotenv.env['REVENUECAT_TEST_PUBLIC_KEY'] ??
-          'test_NvNhmyLkEIisARtCdrQnSsPBywT';
-
-      try {
-        currentOfferings = await Purchases.getOfferings();
-        print("✅ Primary Key getOfferings returned successfully.");
-        _logOfferingsDetails(currentOfferings);
-      } catch (e) {
-        print("⚠️ RevenueCat getOfferings error with primary key: $e");
-        print(
-          "🔄 Attempting RevenueCat Test Store Key ($testKey)...",
-        );
-        try {
-          await Purchases.configure(
-            PurchasesConfiguration(testKey)..appUserID = null,
-          );
-          currentOfferings = await Purchases.getOfferings();
-          _logOfferingsDetails(currentOfferings);
-        } catch (testErr) {
-          print("ℹ️ RevenueCat StoreKit/Play Store not configured for test key ($testErr). Using fallback plans.");
-        }
+      if (!await _isRevenueCatReady()) {
+        availablePlans.assignAll(_getDefaultPlans());
+        isLoading.value = false;
+        return;
       }
+
+      currentOfferings = await Purchases.getOfferings();
+      _logOfferingsDetails(currentOfferings);
 
       List<Package> packages =
           currentOfferings?.current?.availablePackages ?? [];
@@ -197,71 +229,78 @@ class SubscriptionController extends GetxController {
         packages = currentOfferings!.all.values.first.availablePackages;
       }
 
-      if (packages.isEmpty) {
-        print(
-          "🔄 Primary key returned 0 packages. Trying RevenueCat Test Store Key ($testKey)...",
-        );
-        try {
-          await Purchases.configure(
-            PurchasesConfiguration(testKey)..appUserID = null,
-          );
-          currentOfferings = await Purchases.getOfferings();
-          _logOfferingsDetails(currentOfferings);
-          packages = currentOfferings?.current?.availablePackages ?? [];
-          if (packages.isEmpty && currentOfferings?.all.isNotEmpty == true) {
-            packages = currentOfferings!.all.values.first.availablePackages;
-          }
-        } catch (e) {
-          print("Test store key config error: $e");
-        }
-      }
-
       if (packages.isNotEmpty) {
-        availablePlans.assignAll(
-          packages.map((pkg) {
-            final product = pkg.storeProduct;
-            final isYearly =
-                product.identifier.toLowerCase().contains('yearly') ||
-                pkg.identifier.toLowerCase().contains('annual') ||
-                product.title.toLowerCase().contains('year') ||
-                product.subscriptionPeriod?.contains('P1Y') == true;
+        final mappedPlans = packages.map((pkg) {
+          final product = pkg.storeProduct;
 
-            final monthlyEquivalent = isYearly
-                ? '\$${(product.price / 12).toStringAsFixed(2)}'
-                : product.priceString;
+          final isYearly = pkg.packageType == PackageType.annual ||
+              product.identifier.toLowerCase().contains('yearly') ||
+              pkg.identifier.toLowerCase().contains('annual') ||
+              pkg.identifier.toLowerCase().contains('yearly') ||
+              product.title.toLowerCase().contains('year') ||
+              product.title.toLowerCase().contains('annual') ||
+              product.subscriptionPeriod?.contains('P1Y') == true;
 
-            String trialText = '';
-            final options = product.subscriptionOptions;
-            if (options != null && options.isNotEmpty) {
-              final trialOption = options.firstWhere(
-                (opt) => opt.freePhase != null,
-                orElse: () => options.first,
-              );
+          // Extract currency symbol / prefix
+          String currencySymbol = '\$';
+          final match = RegExp(r'^[^0-9]+').firstMatch(product.priceString.trim());
+          if (match != null) {
+            currencySymbol = match.group(0)!;
+          }
 
-              final freePhase = trialOption.freePhase;
-              if (freePhase != null && freePhase.price.amountMicros == 0) {
-                trialText = '7-day free trial';
-              }
-            }
+          final monthlyEquivalent = isYearly
+              ? '$currencySymbol${(product.price / 12).toStringAsFixed(2)}'
+              : product.priceString;
 
-            return SubscriptionPlanItem(
-              id: pkg.identifier,
-              duration: isYearly ? 'YEARLY' : 'MONTHLY',
-              price: product.priceString,
-              monthlyPrice: monthlyEquivalent,
-              features: const [
-                'Body Scan & Analysis',
-                'Custom Workouts & Plans',
-                'Progress Tracking',
-                'Nutrition Plan',
-                'Achievements & More',
-              ],
-              isBestValue: isYearly,
-              trialText: trialText.isNotEmpty ? trialText : '7-day free trial',
-              package: pkg,
+          // Detect trial
+          String trialText = '';
+          final options = product.subscriptionOptions;
+          if (options != null && options.isNotEmpty) {
+            final trialOption = options.firstWhere(
+              (opt) => opt.freePhase != null,
+              orElse: () => options.first,
             );
-          }).toList(),
-        );
+            final freePhase = trialOption.freePhase;
+            if (freePhase != null && freePhase.price.amountMicros == 0) {
+              trialText = '7-day free trial';
+            }
+          }
+
+          if (trialText.isEmpty && product.introductoryPrice != null) {
+            if (product.introductoryPrice!.price == 0) {
+              trialText = '7-day free trial';
+            }
+          }
+
+          return SubscriptionPlanItem(
+            id: pkg.identifier,
+            duration: isYearly ? 'YEARLY' : 'MONTHLY',
+            price: product.priceString,
+            monthlyPrice: monthlyEquivalent,
+            features: const [
+              'Body Scan & Analysis',
+              'Custom Workouts & Plans',
+              'Progress Tracking',
+              'Nutrition Plan',
+              'Achievements & More',
+            ],
+            isBestValue: isYearly,
+            trialText: trialText.isNotEmpty ? trialText : '7-day free trial',
+            package: pkg,
+          );
+        }).toList();
+
+        // Sort so Yearly / Best Value or Monthly is ordered nicely
+        mappedPlans.sort((a, b) => b.isBestValue ? 1 : -1);
+
+        availablePlans.assignAll(mappedPlans);
+
+        final bestIndex = availablePlans.indexWhere((p) => p.isBestValue);
+        if (bestIndex != -1) {
+          selectedPlanIndex.value = bestIndex;
+        } else if (availablePlans.isNotEmpty) {
+          selectedPlanIndex.value = 0;
+        }
       } else {
         print("⚠️ No packages found from RevenueCat. Using fallback plans.");
         availablePlans.assignAll(_getDefaultPlans());
@@ -277,7 +316,7 @@ class SubscriptionController extends GetxController {
   /// Call this when user wants to refresh plans (e.g. pull-to-refresh)
   Future<void> refreshOfferings() => _fetchOfferings();
 
-  /// Helper to activate test subscription when Play Store items are draft or unavailable
+  /// Helper to activate test subscription when Play Store / App Store is in dev/test sandbox
   void _activateTestSubscription(String duration) {
     isSubscribed.value = true;
     activePlan.value =
@@ -297,7 +336,7 @@ class SubscriptionController extends GetxController {
         style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
       ),
       description: Text(
-        'Play Store item pending activation. Test subscription activated!',
+        'Test subscription activated successfully!',
         style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
       ),
       alignment: Alignment.topRight,
@@ -311,28 +350,28 @@ class SubscriptionController extends GetxController {
   /// Purchase plan (handles live RevenueCat store purchases with dev test fallback)
   Future<void> purchasePlan(SubscriptionPlanItem planItem) async {
     if (planItem.package == null) {
-      try {
-        isLoading.value = true;
-        await _fetchOfferings();
-        isLoading.value = false;
+      if (await _isRevenueCatReady()) {
+        try {
+          isLoading.value = true;
+          await _fetchOfferings();
+          isLoading.value = false;
 
-        final updatedPlan = availablePlans.firstWhere(
-          (p) => p.duration == planItem.duration && p.package != null,
-          orElse: () => planItem,
-        );
+          final updatedPlan = availablePlans.firstWhereOrNull(
+            (p) => p.duration == planItem.duration && p.package != null,
+          );
 
-        if (updatedPlan.package != null) {
-          await purchasePackage(updatedPlan.package!);
-          return;
+          if (updatedPlan?.package != null) {
+            await purchasePackage(updatedPlan!.package!);
+            return;
+          }
+        } catch (e) {
+          isLoading.value = false;
         }
-
-        _activateTestSubscription(planItem.duration);
-        return;
-      } catch (e) {
-        isLoading.value = false;
-        _activateTestSubscription(planItem.duration);
-        return;
       }
+
+      // Fallback test activation
+      _activateTestSubscription(planItem.duration);
+      return;
     }
 
     await purchasePackage(planItem.package!);
@@ -344,7 +383,6 @@ class SubscriptionController extends GetxController {
       isLoading.value = true;
 
       final purchaseParams = PurchaseParams.package(package);
-
       final PurchaseResult purchaseResult = await Purchases.purchase(
         purchaseParams,
       );
@@ -397,7 +435,9 @@ class SubscriptionController extends GetxController {
       }
 
       if (!errStr.contains('usercancelledexception') &&
-          !errStr.contains('purchasecancellederror')) {
+          !errStr.contains('purchasecancellederror') &&
+          !errStr.contains('cancelled') &&
+          !errStr.contains('canceled')) {
         toastification.show(
           type: ToastificationType.error,
           style: ToastificationStyle.fillColored,
@@ -424,9 +464,33 @@ class SubscriptionController extends GetxController {
   Future<void> restorePurchases() async {
     try {
       isLoading.value = true;
+      if (!await _isRevenueCatReady()) {
+        isLoading.value = false;
+        toastification.show(
+          type: ToastificationType.info,
+          style: ToastificationStyle.fillColored,
+          primaryColor: AppColor.green16A34A,
+          foregroundColor: Colors.white,
+          title: Text(
+            'Info',
+            style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
+          ),
+          description: Text(
+            'No active subscription found',
+            style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
+          ),
+          alignment: Alignment.topRight,
+          autoCloseDuration: const Duration(seconds: 4),
+          borderRadius: BorderRadius.circular(12),
+          showProgressBar: true,
+        );
+        return;
+      }
+
       final customerInfo = await Purchases.restorePurchases();
       _updateEntitlement(customerInfo);
       isLoading.value = false;
+
       if (isSubscribed.value) {
         toastification.show(
           type: ToastificationType.success,
@@ -479,7 +543,7 @@ class SubscriptionController extends GetxController {
           style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
         ),
         description: Text(
-          'Restore failed',
+          'Restore failed: ${e.toString()}',
           style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
         ),
         alignment: Alignment.topRight,
@@ -517,14 +581,19 @@ class SubscriptionController extends GetxController {
   /// Private: update UI state from customer info
   void _updateEntitlement(CustomerInfo info) {
     final hasActiveEntitlement = info.entitlements.active.isNotEmpty;
-    final proEntitlement =
-        info.entitlements.all['pro'] ??
+    final proEntitlement = info.entitlements.all['pro'] ??
         info.entitlements.all['Pro'] ??
         info.entitlements.all['premium'] ??
-        info.entitlements.all['Premium'];
+        info.entitlements.all['Premium'] ??
+        info.entitlements.all['default'] ??
+        info.entitlements.all['subscription'];
+
+    final hasActiveSubscriptions = info.activeSubscriptions.isNotEmpty;
 
     isSubscribed.value =
-        hasActiveEntitlement || (proEntitlement?.isActive ?? false);
+        hasActiveEntitlement ||
+        (proEntitlement?.isActive ?? false) ||
+        hasActiveSubscriptions;
 
     if (isSubscribed.value) {
       final activeEnt = info.entitlements.active.values.isNotEmpty
@@ -534,7 +603,11 @@ class SubscriptionController extends GetxController {
       if (activeEnt?.periodType == PeriodType.trial) {
         activePlan.value = 'trial';
       } else {
-        final pid = (activeEnt?.productIdentifier ?? '').toLowerCase();
+        final pid = (activeEnt?.productIdentifier ??
+                (info.activeSubscriptions.isNotEmpty
+                    ? info.activeSubscriptions.first
+                    : ''))
+            .toLowerCase();
         if (pid.contains('year') || pid.contains('annual')) {
           activePlan.value = 'yearly';
         } else {
@@ -553,10 +626,7 @@ class SubscriptionController extends GetxController {
   /// Log in specific user to RevenueCat
   Future<void> logInUser(String email) async {
     try {
-      if (email.isNotEmpty &&
-          !GetPlatform.isWeb &&
-          !GetPlatform.isWindows &&
-          !GetPlatform.isLinux) {
+      if (email.isNotEmpty && await _isRevenueCatReady()) {
         final res = await Purchases.logIn(email);
         _updateEntitlement(res.customerInfo);
       }
@@ -568,9 +638,7 @@ class SubscriptionController extends GetxController {
   /// Log out user from RevenueCat
   Future<void> logOutUser() async {
     try {
-      if (!GetPlatform.isWeb &&
-          !GetPlatform.isWindows &&
-          !GetPlatform.isLinux) {
+      if (await _isRevenueCatReady()) {
         final customerInfo = await Purchases.logOut();
         _updateEntitlement(customerInfo);
       }
@@ -633,11 +701,5 @@ class SubscriptionController extends GetxController {
     print(
       '========================================================================',
     );
-  }
-
-  @override
-  void onClose() {
-    // Optional: remove listener if needed
-    super.onClose();
   }
 }

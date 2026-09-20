@@ -8,8 +8,9 @@ class SubscriptionCard extends StatelessWidget {
   final String monthlyPrice;
   final List<String> features;
   final bool isBestValue;
+  final bool isSelected;
   final VoidCallback onPressed;
-  final String? trialText; // ← New optional param
+  final String? trialText;
 
   const SubscriptionCard({
     super.key,
@@ -18,8 +19,9 @@ class SubscriptionCard extends StatelessWidget {
     required this.monthlyPrice,
     required this.features,
     this.isBestValue = false,
+    this.isSelected = false,
     required this.onPressed,
-    this.trialText, // ← Add here
+    this.trialText,
   });
 
   @override
@@ -27,7 +29,7 @@ class SubscriptionCard extends StatelessWidget {
     final Color bgColor = isBestValue
         ? AppColor.customPurple
         : AppColor.gray374151;
-    final Color textColor = isBestValue ? Colors.white : AppColor.white;
+    final Color textColor = Colors.white;
     final Color buttonColor = isBestValue
         ? Colors.white
         : AppColor.customPurple;
@@ -35,145 +37,151 @@ class SubscriptionCard extends StatelessWidget {
         ? AppColor.customPurple
         : Colors.white;
 
-    return Container(
-      width: 300.w,
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            offset: const Offset(0, 4),
-            blurRadius: 8,
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 300.w,
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isSelected
+                ? (isBestValue ? Colors.white : AppColor.customPurple)
+                : Colors.transparent,
+            width: 2.5,
           ),
-        ],
-      ),
-      child:  Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // BEST VALUE + Star badge
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isBestValue)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 4.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Text(
-                            'BEST VALUE',
-                            style: TextStyle(
-                              color: AppColor.customPurple,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Icon(Icons.star, color: Colors.yellow, size: 20.sp),
-                      ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              offset: const Offset(0, 4),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // BEST VALUE + Star badge / Free Trial badge
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (isBestValue)
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 4.h,
                     ),
-
-                  // Free Trial badge (new)
-                  if (trialText != null && trialText!.isNotEmpty)
-                    Padding(
-                      padding: EdgeInsets.only(top: isBestValue ? 8.h : 16.h),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12.w,
-                          vertical: 6.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: Text(
-                          trialText!,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Text(
+                      'BEST VALUE',
+                      style: TextStyle(
+                        color: AppColor.customPurple,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                  )
+                else
+                  const SizedBox.shrink(),
 
-                  SizedBox(height: 12.h),
+                if (trialText != null && trialText!.isNotEmpty)
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 4.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Text(
+                      trialText!,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
 
-                  Text(
-                    duration,
+            SizedBox(height: 8.h),
+
+            Text(
+              duration,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+
+            SizedBox(height: 4.h),
+
+            RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: price.startsWith('\$') ? price : '\$$price',
                     style: TextStyle(
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.w900,
                       color: textColor,
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
-
-                  SizedBox(height: 6.h),
-
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: price.startsWith('\$') ? price : '\$$price',
-                          style: TextStyle(
-                            fontSize: 28.sp,
-                            fontWeight: FontWeight.w900,
-                            color: textColor,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' total',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: textColor.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: 4.h),
-
-                  Text(
-                    monthlyPrice.startsWith('\$')
-                        ? '$monthlyPrice / month'
-                        : '\$$monthlyPrice / month',
+                  TextSpan(
+                    text: ' total',
                     style: TextStyle(
-                      color: textColor.withOpacity(0.7),
-                      fontSize: 12.sp,
+                      fontSize: 11.sp,
+                      color: textColor.withValues(alpha: 0.7),
                     ),
                   ),
+                ],
+              ),
+            ),
 
-                  SizedBox(height: 20.h),
+            SizedBox(height: 2.h),
 
-                  ...features.map(
-                        (f) => Padding(
-                      padding: EdgeInsets.only(bottom: 8.h),
+            Text(
+              monthlyPrice.startsWith('\$')
+                  ? '$monthlyPrice / month'
+                  : '\$$monthlyPrice / month',
+              style: TextStyle(
+                color: textColor.withValues(alpha: 0.7),
+                fontSize: 11.sp,
+              ),
+            ),
+
+            SizedBox(height: 12.h),
+
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  children: features.map(
+                    (f) => Padding(
+                      padding: EdgeInsets.only(bottom: 6.h),
                       child: Row(
                         children: [
                           Icon(
-                            Icons.check,
-                            color: textColor.withOpacity(0.9),
-                            size: 16.sp,
+                            Icons.check_circle_rounded,
+                            color: isBestValue
+                                ? Colors.white
+                                : AppColor.green16A34A,
+                            size: 15.sp,
                           ),
                           SizedBox(width: 8.w),
                           Expanded(
                             child: Text(
                               f,
                               style: TextStyle(
-                                color: textColor,
-                                fontSize: 13.sp,
+                                color: textColor.withValues(alpha: 0.95),
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -181,35 +189,42 @@ class SubscriptionCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                  ).toList(),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 8.h),
+
+            Center(
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: buttonColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 10.h,
+                    ),
                   ),
-                ],
-              ),
-            ),
-          ),
-
-          Center(
-            child: ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-              ),
-              child: Text(
-                'Choose $duration Plan',
-                style: TextStyle(
-                  color: buttonTextColor,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.bold,
+                  child: Text(
+                    'Choose $duration Plan',
+                    style: TextStyle(
+                      color: buttonTextColor,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-
-          SizedBox(height: 12.h),
-        ],
+          ],
+        ),
       ),
     );
   }

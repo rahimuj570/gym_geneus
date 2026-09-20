@@ -17,9 +17,10 @@ import '../widgets/subscription_card.dart';
 class Subscription extends StatelessWidget {
   Subscription({super.key});
 
-  final SubscriptionController controller = Get.isRegistered<SubscriptionController>()
-      ? Get.find<SubscriptionController>()
-      : Get.put(SubscriptionController());
+  final SubscriptionController controller =
+      Get.isRegistered<SubscriptionController>()
+          ? Get.find<SubscriptionController>()
+          : Get.put(SubscriptionController());
 
   final List<Map<String, String>> featureCards = [
     {
@@ -47,7 +48,7 @@ class Subscription extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColor.white,
+      backgroundColor: AppColor.black111214,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -57,7 +58,11 @@ class Subscription extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.close, color: Colors.white),
             onPressed: () {
-              Get.offAll(() => Navbar());
+              if (Navigator.of(context).canPop()) {
+                Get.back();
+              } else {
+                Get.offAll(() => Navbar());
+              }
             },
           ),
         ],
@@ -72,7 +77,7 @@ class Subscription extends StatelessWidget {
             colorBlendMode: BlendMode.darken,
           ),
 
-          Container(color: Colors.black.withOpacity(0.3)),
+          Container(color: Colors.black.withValues(alpha: 0.4)),
 
           SafeArea(
             child: Obx(() {
@@ -87,44 +92,53 @@ class Subscription extends StatelessWidget {
               // Already subscribed screen
               if (controller.isSubscribed.value) {
                 return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 80.r),
-                      SizedBox(height: 24.h),
-                      Text(
-                        "You're All Set!",
-                        style: AppTextStyles.poppinsBold.copyWith(
-                          fontSize: 28.sp,
-                          color: Colors.white,
-                        ),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 80.r,
+                          ),
+                          SizedBox(height: 24.h),
+                          Text(
+                            "You're All Set!",
+                            style: AppTextStyles.poppinsBold.copyWith(
+                              fontSize: 28.sp,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 12.h),
+                          Text(
+                            statusText,
+                            style: AppTextStyles.poppinsRegular.copyWith(
+                              fontSize: 16.sp,
+                              color: Colors.white70,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 40.h),
+                          CustomButton(
+                            onPress: () async => Get.offAll(
+                              () => Navbar(),
+                              transition: Transition.rightToLeft,
+                            ),
+                            title: 'CONTINUE TO APP',
+                            buttonColor: Colors.white,
+                            textColor: AppColor.customPurple,
+                            borderColor: AppColor.customPurple,
+                            radius: 12.r,
+                            height: 56.h,
+                            width: 280.w,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 12.h),
-                      Text(
-                        statusText,
-                        style: AppTextStyles.poppinsRegular.copyWith(
-                          fontSize: 16.sp,
-                          color: Colors.white70,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 40.h),
-                      CustomButton(
-                        onPress: () async => Get.offAll(
-                          () => Navbar(),
-                          transition: Transition.rightToLeft,
-                        ),
-                        title: 'CONTINUE TO APP',
-                        buttonColor: Colors.white,
-                        textColor: AppColor.customPurple,
-                        borderColor: AppColor.customPurple,
-                        radius: 12.r,
-                        height: 60.h,
-                        width: 280.w,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ],
+                    ),
                   ),
                 );
               }
@@ -188,6 +202,8 @@ class Subscription extends StatelessWidget {
                 );
               }
 
+              final selectedPlan = controller.selectedPlan;
+
               return RefreshIndicator(
                 color: AppColor.customPurple,
                 backgroundColor: Colors.white,
@@ -197,12 +213,15 @@ class Subscription extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      SizedBox(height: 40.h),
+                      SizedBox(height: 20.h),
 
                       // Logo / icon
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 20.w),
-                        child: SvgPicture.asset(ImageAssets.svg13, height: 36.h),
+                        child: SvgPicture.asset(
+                          ImageAssets.svg13,
+                          height: 36.h,
+                        ),
                       ),
 
                       SizedBox(height: 16.h),
@@ -242,35 +261,47 @@ class Subscription extends StatelessWidget {
                         ),
                       ),
 
-                      SizedBox(height: 32.h),
+                      SizedBox(height: 24.h),
 
                       // Dynamic Carousel
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20.w),
-                        child: CarouselSlider(
+                        padding: EdgeInsets.symmetric(horizontal: 10.w),
+                        child: CarouselSlider.builder(
+                          itemCount: plans.length,
                           options: CarouselOptions(
-                            height: 340.h,
+                            height: 350.h,
                             enlargeCenterPage: true,
                             enableInfiniteScroll: false,
-                            viewportFraction: 0.82,
-                            padEnds: false,
+                            viewportFraction: 0.85,
+                            initialPage: controller.selectedPlanIndex.value
+                                .clamp(0, plans.length - 1),
+                            onPageChanged: (index, reason) {
+                              controller.selectPlan(index);
+                            },
                           ),
-                          items: plans.map((planItem) {
+                          itemBuilder: (context, index, realIndex) {
+                            final planItem = plans[index];
+                            final isSelected =
+                                controller.selectedPlanIndex.value == index;
                             return SubscriptionCard(
                               duration: planItem.duration,
                               price: planItem.price,
                               monthlyPrice: planItem.monthlyPrice,
                               features: planItem.features,
                               isBestValue: planItem.isBestValue,
+                              isSelected: isSelected,
                               trialText: planItem.trialText,
-                              onPressed: () => controller.purchasePlan(planItem),
+                              onPressed: () {
+                                controller.selectPlan(index);
+                                controller.purchasePlan(planItem);
+                              },
                             );
-                          }).toList(),
+                          },
                         ),
                       ),
-  
+
                       SizedBox(height: 24.h),
-  
+
                       // Feature grid
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -278,11 +309,18 @@ class Subscription extends StatelessWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: featureCards.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: MediaQuery.of(context).size.width >= 600 ? 3 : 2,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount:
+                                MediaQuery.of(context).size.width >= 600
+                                    ? 3
+                                    : 2,
                             mainAxisSpacing: 16.h,
                             crossAxisSpacing: 12.w,
-                            childAspectRatio: MediaQuery.of(context).size.width >= 600 ? 1.1 : 0.95,
+                            childAspectRatio:
+                                MediaQuery.of(context).size.width >= 600
+                                    ? 1.1
+                                    : 0.95,
                           ),
                           itemBuilder: (context, index) {
                             final card = featureCards[index];
@@ -294,7 +332,7 @@ class Subscription extends StatelessWidget {
                           },
                         ),
                       ),
-  
+
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 20.w,
@@ -306,9 +344,9 @@ class Subscription extends StatelessWidget {
                           subtitle: "Calorie tracking + diet/food intake",
                         ),
                       ),
-  
-                      SizedBox(height: 60.h),
-  
+
+                      SizedBox(height: 40.h),
+
                       // Bottom action bar
                       Container(
                         width: double.infinity,
@@ -330,12 +368,10 @@ class Subscription extends StatelessWidget {
                             SizedBox(height: 16.h),
                             CustomButton(
                               onPress: () async {
-                                if (plans.isNotEmpty) {
-                                  final planToPurchase = plans.firstWhere(
-                                    (p) => p.isBestValue,
-                                    orElse: () => plans.first,
-                                  );
-                                  await controller.purchasePlan(planToPurchase);
+                                if (selectedPlan != null) {
+                                  await controller.purchasePlan(selectedPlan);
+                                } else if (plans.isNotEmpty) {
+                                  await controller.purchasePlan(plans.first);
                                 } else {
                                   Get.offAll(
                                     () => Navbar(),
@@ -343,15 +379,17 @@ class Subscription extends StatelessWidget {
                                   );
                                 }
                               },
-                              title: 'SUBSCRIBE NOW • START FREE TRIAL',
+                              title: selectedPlan != null
+                                  ? 'START FREE TRIAL • ${selectedPlan.duration}'
+                                  : 'SUBSCRIBE NOW • START FREE TRIAL',
                               buttonColor: Colors.white,
                               textColor: AppColor.customPurple,
                               borderColor: AppColor.customPurple,
                               radius: 12.r,
-                              height: 60.h,
+                              height: 56.h,
                               width: double.infinity,
                               fontWeight: FontWeight.bold,
-                              fontSize: 12.sp,
+                              fontSize: 13.sp,
                             ),
                             SizedBox(height: 12.h),
                             Text(
@@ -435,4 +473,3 @@ class Subscription extends StatelessWidget {
     );
   }
 }
-

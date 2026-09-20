@@ -10,11 +10,11 @@ class InfoCard extends StatelessWidget {
   final String subtitle;
 
   const InfoCard({
-    Key? key,
+    super.key,
     required this.svgPath,
     required this.title,
     required this.subtitle,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
