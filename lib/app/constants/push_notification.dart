@@ -1,11 +1,6 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:http/http.dart' as http;
 
 import '../../../../main.dart';
 import 'appconstants.dart';
@@ -106,8 +101,15 @@ Future<void> showNotification(RemoteMessage message) async {
   );
 }
 
+bool _isFcmInitialized = false;
+
 // ------------------------ FCM Initialization ------------------------
 Future<void> initFCM() async {
+  if (_isFcmInitialized) {
+    await syncFCMToken();
+    return;
+  }
+
   FirebaseMessaging messaging = FirebaseMessaging.instance;
 
   // Initialize local notifications and channels
@@ -132,15 +134,19 @@ Future<void> initFCM() async {
     return;
   }
 
-  // Get FCM token and store it
-  final token = await messaging.getToken();
-  final box = GetStorage();
-  box.write('FCMToken', token);
-  print("📲 FCM Token: $token");
+  _isFcmInitialized = true;
 
-  final String? loginToken = GetStorage().read<String>('loginToken');
-  if (token != null && loginToken != null) {
-    await sendTokenToBackend(token);
+  // Get FCM token and store it
+  try {
+    final token = await messaging.getToken();
+    if (token != null) {
+      final box = GetStorage();
+      box.write('FCMToken', token);
+      print("📲 FCM Token: $token");
+      await syncFCMToken();
+    }
+  } catch (e) {
+    print("⚠️ Error retrieving initial FCM token: $e");
   }
 
   // Foreground messages listener
@@ -157,14 +163,38 @@ Future<void> initFCM() async {
   // Token refresh
   FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
     print("🔄 FCM Token refreshed: $newToken");
+    final box = GetStorage();
+    box.write('FCMToken', newToken);
     await sendTokenToBackend(newToken);
   });
 }
 
+// ------------------------ Sync Token to Backend ------------------------
+Future<void> syncFCMToken() async {
+  try {
+    final box = GetStorage();
+    String? token = box.read<String>('FCMToken');
+    if (token == null || token.isEmpty) {
+      token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        box.write('FCMToken', token);
+      }
+    }
+
+    final String? loginToken = box.read<String>('loginToken');
+    if (token != null && token.isNotEmpty && loginToken != null && loginToken.isNotEmpty) {
+      print("📲 Syncing FCM token to backend: $token");
+      await sendTokenToBackend(token);
+    }
+  } catch (e) {
+    print("⚠️ Error syncing FCM token: $e");
+  }
+}
+
 // ------------------------ Send Token to Backend ------------------------
 Future<void> sendTokenToBackend(String token) async {
-  const String _baseUrl = AppConstants.baseUrl;
-  final url = '$_baseUrl/utils/register_device_token/';
+  const String baseUrl = AppConstants.baseUrl;
+  final url = '$baseUrl/utils/register_device_token/';
 
   await ApiClient.post(
     Uri.parse(url),
@@ -175,12 +205,12 @@ Future<void> sendTokenToBackend(String token) async {
 
 // ------------------------ Unregister Token ------------------------
 Future<void> unregisterFCM() async {
-  const String _baseUrl = AppConstants.baseUrl;
+  const String baseUrl = AppConstants.baseUrl;
   final String? token = GetStorage().read<String>('FCMToken');
 
   if (token == null) return;
 
-  final url = '$_baseUrl/notification/unregister_device_token/';
+  final url = '$baseUrl/notification/unregister_device_token/';
 
   await ApiClient.post(
     Uri.parse(url),

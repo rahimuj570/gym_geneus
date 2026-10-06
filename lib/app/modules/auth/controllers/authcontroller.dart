@@ -21,7 +21,6 @@ import '../../../res/fonts/textstyle.dart';
 import '../models/signupmodel.dart';
 import '../models/usermodel.dart';
 import '../services/auth_service.dart';
-import '../views/passconfirmation.dart';
 import 'package:kenzeno/app/modules/setting/service/setting_service.dart';
 import 'package:toastification/toastification.dart';
 import 'package:kenzeno/app/widgets/custom_snackbar.dart';
@@ -232,6 +231,12 @@ class Authcontroller extends GetxController {
         );
 
         try {
+          await syncFCMToken().timeout(const Duration(seconds: 5));
+        } catch (e) {
+          print("⚠️ FCM sync failed on Google login: $e");
+        }
+
+        try {
           final profile = await SettingService().fetchProfile();
           if (profile.hasMissingProfileFields) {
             Get.offAll(() => Setup(), transition: Transition.rightToLeft);
@@ -311,11 +316,11 @@ class Authcontroller extends GetxController {
         CustomSnackbar.showSuccess('Login successful! Welcome back.');
 
         try {
-          await initFCM().timeout(
+          await syncFCMToken().timeout(
             const Duration(seconds: 5),
           ); // don't block longer than 5s
         } catch (e) {
-          print("⚠️ FCM init failed or timed out: $e");
+          print("⚠️ FCM token sync failed or timed out: $e");
         }
 
         try {
@@ -396,6 +401,13 @@ class Authcontroller extends GetxController {
         if (result == "success") {
           clearAllControllers(preserveRemembered: false);
           CustomSnackbar.showSuccess('Account activated successfully!');
+
+          try {
+            await syncFCMToken().timeout(const Duration(seconds: 5));
+          } catch (e) {
+            print("⚠️ FCM sync failed on activation: $e");
+          }
+
           Get.offAll(Setup(), transition: Transition.rightToLeft);
         } else {
           CustomSnackbar.showError(result);
