@@ -10,6 +10,7 @@ import 'package:kenzeno/app/modules/setting/service/setting_service.dart';
 import 'package:kenzeno/app/modules/setting/views/notificationsettings.dart';
 import 'package:kenzeno/app/modules/setting/views/passwordsettting.dart';
 import 'package:kenzeno/app/modules/setting/views/gallery_password_setting.dart';
+import 'package:kenzeno/app/modules/setting/views/blocked_users_view.dart';
 import 'package:kenzeno/app/widgets/backbutton_widget.dart';
 import '../../../res/colors/colors.dart';
 import '../../../res/fonts/textstyle.dart';
@@ -77,6 +78,18 @@ class SettingsScreen extends StatelessWidget {
             SizedBox(height: 10.h),
             _buildSettingTile(
               context,
+              title: "Blocked Users",
+              iconData: Icons.block,
+              onTap: () {
+                Get.to(
+                  () => const BlockedUsersScreen(),
+                  transition: Transition.rightToLeft,
+                );
+              },
+            ),
+            SizedBox(height: 10.h),
+            _buildSettingTile(
+              context,
               title: "Delete Account",
               svgPath: ImageAssets.svg37,
               onTap: () {
@@ -95,7 +108,8 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildSettingTile(
     BuildContext context, {
     required String title,
-    required String svgPath,
+    String? svgPath,
+    IconData? iconData,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -108,7 +122,9 @@ class SettingsScreen extends StatelessWidget {
           children: [
             // Icon
             Center(
-              child: SvgPicture.asset(svgPath, height: 30.sp, width: 30.sp),
+              child: svgPath != null
+                  ? SvgPicture.asset(svgPath, height: 30.sp, width: 30.sp)
+                  : Icon(iconData ?? Icons.settings, size: 26.sp, color: Colors.white70),
             ),
             SizedBox(width: 20.w),
             // Title

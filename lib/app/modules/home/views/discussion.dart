@@ -176,6 +176,7 @@ class DiscussionForumPage extends StatelessWidget {
                               controller.toggleLike(post.id);
                             },
                             postId: post.id,
+                            userId: post.userId,
                             onEditComplete: (newText) {
                               // Update content instantly after edit
                               final index = controller.posts.indexWhere(

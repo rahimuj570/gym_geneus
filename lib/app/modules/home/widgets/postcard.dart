@@ -13,6 +13,7 @@ class PostCard extends StatefulWidget {
   final String name;
   final String content;
   final int postId;
+  final String userId;
   final int favoriteCount;
   final int commentCount;
   final bool isFavorited;
@@ -27,6 +28,7 @@ class PostCard extends StatefulWidget {
     required this.name,
     required this.content,
     required this.postId,
+    this.userId = '',
     required this.favoriteCount,
     required this.commentCount,
     this.isFavorited = false,
@@ -70,14 +72,23 @@ class _PostCardState extends State<PostCard>
     widget.onFavoriteTap?.call();
   }
 
-  void _showReportDialog(String contentType, String targetName) {
-    String selectedReason = "Inappropriate content";
+  void _showReportDialog({
+    required String contentType,
+    required String targetName,
+    int? postId,
+    int? commentId,
+  }) {
+    String selectedReasonKey = "inappropriate";
+    final descController = TextEditingController();
+    var isSubmitting = false;
+
     final reasons = [
-      "Inappropriate content",
-      "Spam or misleading",
-      "Harassment or bullying",
-      "Hate speech",
-      "Other",
+      {"key": "inappropriate", "label": "Inappropriate Content"},
+      {"key": "spam", "label": "Spam"},
+      {"key": "harassment", "label": "Harassment"},
+      {"key": "hate_speech", "label": "Hate Speech"},
+      {"key": "misinformation", "label": "Misinformation"},
+      {"key": "other", "label": "Other"},
     ];
 
     Get.dialog(
@@ -95,34 +106,53 @@ class _PostCardState extends State<PostCard>
                 fontSize: 18.sp,
               ),
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Why are you reporting this $contentType from $targetName?",
-                  style: TextStyle(color: AppColor.gray9CA3AF, fontSize: 13.sp),
-                ),
-                SizedBox(height: 12.h),
-                ...reasons.map(
-                  (reason) => RadioListTile<String>(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      reason,
-                      style: TextStyle(color: Colors.white, fontSize: 13.sp),
-                    ),
-                    value: reason,
-                    groupValue: selectedReason,
-                    activeColor: AppColor.customPurple,
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() => selectedReason = val);
-                      }
-                    },
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Why are you reporting this $contentType from $targetName?",
+                    style: TextStyle(color: AppColor.gray9CA3AF, fontSize: 13.sp),
                   ),
-                ),
-              ],
+                  SizedBox(height: 12.h),
+                  ...reasons.map(
+                    (item) => RadioListTile<String>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        item["label"]!,
+                        style: TextStyle(color: Colors.white, fontSize: 13.sp),
+                      ),
+                      value: item["key"]!,
+                      groupValue: selectedReasonKey,
+                      activeColor: AppColor.customPurple,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedReasonKey = val);
+                        }
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  TextField(
+                    controller: descController,
+                    maxLines: 2,
+                    style: TextStyle(color: Colors.white, fontSize: 13.sp),
+                    decoration: InputDecoration(
+                      hintText: "Additional details (optional)...",
+                      hintStyle: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                      filled: true,
+                      fillColor: AppColor.black111214,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: EdgeInsets.all(10.r),
+                    ),
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -139,35 +169,41 @@ class _PostCardState extends State<PostCard>
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                 ),
-                onPressed: () {
-                  Get.back();
-                  toastification.show(
-                    type: ToastificationType.success,
-                    style: ToastificationStyle.fillColored,
-                    primaryColor: AppColor.green16A34A,
-                    foregroundColor: Colors.white,
-                    title: Text(
-                      "Report Submitted",
-                      style: AppTextStyles.poppinsBold.copyWith(
-                        color: Colors.white,
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        setDialogState(() => isSubmitting = true);
+                        final controller = Get.find<ForumController>();
+                        final desc = descController.text.trim();
+
+                        if (postId != null) {
+                          await controller.reportPost(
+                            postId: postId,
+                            reason: selectedReasonKey,
+                            description: desc,
+                          );
+                        } else if (commentId != null) {
+                          await controller.reportComment(
+                            commentId: commentId,
+                            reason: selectedReasonKey,
+                            description: desc,
+                          );
+                        }
+                        Get.back();
+                      },
+                child: isSubmitting
+                    ? SizedBox(
+                        height: 16.h,
+                        width: 16.w,
+                        child: const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "Submit Report",
+                        style: TextStyle(color: Colors.white),
                       ),
-                    ),
-                    description: Text(
-                      "Thank you. This $contentType has been submitted for moderation review.",
-                      style: AppTextStyles.poppinsRegular.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    alignment: Alignment.topRight,
-                    autoCloseDuration: const Duration(seconds: 4),
-                    borderRadius: BorderRadius.circular(12),
-                    showProgressBar: true,
-                  );
-                },
-                child: const Text(
-                  "Submit Report",
-                  style: TextStyle(color: Colors.white),
-                ),
               ),
             ],
           );
@@ -176,70 +212,96 @@ class _PostCardState extends State<PostCard>
     );
   }
 
-  void _showBlockUserDialog(String userName) {
+  void _showBlockUserDialog({required String userId, required String userName}) {
+    final reasonController = TextEditingController();
+    var isSubmitting = false;
+
     Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColor.gray1F2937,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Text(
-          "Block $userName?",
-          style: AppTextStyles.poppinsBold.copyWith(
-            color: Colors.white,
-            fontSize: 18.sp,
-          ),
-        ),
-        content: Text(
-          "You will no longer see posts, comments, or activities from $userName. This user will also not be able to interact with your content.",
-          style: TextStyle(color: AppColor.gray9CA3AF, fontSize: 13.sp),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              "Cancel",
-              style: TextStyle(color: AppColor.gray9CA3AF),
+      StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: AppColor.gray1F2937,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
             ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.redDC2626,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
+            title: Text(
+              "Block $userName?",
+              style: AppTextStyles.poppinsBold.copyWith(
+                color: Colors.white,
+                fontSize: 18.sp,
               ),
             ),
-            onPressed: () {
-              Get.back();
-              toastification.show(
-                type: ToastificationType.info,
-                style: ToastificationStyle.fillColored,
-                primaryColor: AppColor.customPurple,
-                foregroundColor: Colors.white,
-                title: Text(
-                  "User Blocked",
-                  style: AppTextStyles.poppinsBold.copyWith(
-                    color: Colors.white,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "You will no longer see posts or comments from $userName. This user will also not be able to interact with your content.",
+                  style: TextStyle(color: AppColor.gray9CA3AF, fontSize: 13.sp),
+                ),
+                SizedBox(height: 12.h),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 2,
+                  style: TextStyle(color: Colors.white, fontSize: 13.sp),
+                  decoration: InputDecoration(
+                    hintText: "Reason for blocking (optional)...",
+                    hintStyle: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                    filled: true,
+                    fillColor: AppColor.black111214,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.all(10.r),
                   ),
                 ),
-                description: Text(
-                  "$userName has been blocked.",
-                  style: AppTextStyles.poppinsRegular.copyWith(
-                    color: Colors.white,
-                  ),
-                ),
-                alignment: Alignment.topRight,
-                autoCloseDuration: const Duration(seconds: 4),
-                borderRadius: BorderRadius.circular(12),
-                showProgressBar: true,
-              );
-            },
-            child: const Text(
-              "Block User",
-              style: TextStyle(color: Colors.white),
+              ],
             ),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(),
+                child: Text(
+                  "Cancel",
+                  style: TextStyle(color: AppColor.gray9CA3AF),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.redDC2626,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        setDialogState(() => isSubmitting = true);
+                        final controller = Get.find<ForumController>();
+                        await controller.blockUser(
+                          userId: userId,
+                          userName: userName,
+                          reason: reasonController.text.trim(),
+                        );
+                        Get.back();
+                      },
+                child: isSubmitting
+                    ? SizedBox(
+                        height: 16.h,
+                        width: 16.w,
+                        child: const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "Block User",
+                        style: TextStyle(color: Colors.white),
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -547,10 +609,17 @@ class _PostCardState extends State<PostCard>
 
                                               onSelected: (value) async {
                                                 if (value == 'report') {
-                                                  _showReportDialog("Comment", c.userName);
+                                                  _showReportDialog(
+                                                    contentType: "Comment",
+                                                    targetName: c.userName,
+                                                    commentId: c.id,
+                                                  );
                                                 }
                                                 if (value == 'block') {
-                                                  _showBlockUserDialog(c.userName);
+                                                  _showBlockUserDialog(
+                                                    userId: c.userId,
+                                                    userName: c.userName,
+                                                  );
                                                 }
                                                 if (value == 'edit') {
                                                   final editCtrl =
@@ -1010,10 +1079,17 @@ class _PostCardState extends State<PostCard>
                 onSelected: (value) async {
                   if (value == 'edit') _showEditModal();
                   if (value == 'report') {
-                    _showReportDialog("Post", widget.name);
+                    _showReportDialog(
+                      contentType: "Post",
+                      targetName: widget.name,
+                      postId: widget.postId,
+                    );
                   }
                   if (value == 'block') {
-                    _showBlockUserDialog(widget.name);
+                    _showBlockUserDialog(
+                      userId: widget.userId,
+                      userName: widget.name,
+                    );
                   }
                   if (value == 'delete') {
                     final confirmed = await Get.dialog<bool>(
