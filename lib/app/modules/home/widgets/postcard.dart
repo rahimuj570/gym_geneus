@@ -70,6 +70,180 @@ class _PostCardState extends State<PostCard>
     widget.onFavoriteTap?.call();
   }
 
+  void _showReportDialog(String contentType, String targetName) {
+    String selectedReason = "Inappropriate content";
+    final reasons = [
+      "Inappropriate content",
+      "Spam or misleading",
+      "Harassment or bullying",
+      "Hate speech",
+      "Other",
+    ];
+
+    Get.dialog(
+      StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: AppColor.gray1F2937,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            title: Text(
+              "Report $contentType",
+              style: AppTextStyles.poppinsBold.copyWith(
+                color: Colors.white,
+                fontSize: 18.sp,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Why are you reporting this $contentType from $targetName?",
+                  style: TextStyle(color: AppColor.gray9CA3AF, fontSize: 13.sp),
+                ),
+                SizedBox(height: 12.h),
+                ...reasons.map(
+                  (reason) => RadioListTile<String>(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      reason,
+                      style: TextStyle(color: Colors.white, fontSize: 13.sp),
+                    ),
+                    value: reason,
+                    groupValue: selectedReason,
+                    activeColor: AppColor.customPurple,
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() => selectedReason = val);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(),
+                child: Text(
+                  "Cancel",
+                  style: TextStyle(color: AppColor.gray9CA3AF),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.customPurple,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                onPressed: () {
+                  Get.back();
+                  toastification.show(
+                    type: ToastificationType.success,
+                    style: ToastificationStyle.fillColored,
+                    primaryColor: AppColor.green16A34A,
+                    foregroundColor: Colors.white,
+                    title: Text(
+                      "Report Submitted",
+                      style: AppTextStyles.poppinsBold.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                    description: Text(
+                      "Thank you. This $contentType has been submitted for moderation review.",
+                      style: AppTextStyles.poppinsRegular.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                    alignment: Alignment.topRight,
+                    autoCloseDuration: const Duration(seconds: 4),
+                    borderRadius: BorderRadius.circular(12),
+                    showProgressBar: true,
+                  );
+                },
+                child: const Text(
+                  "Submit Report",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showBlockUserDialog(String userName) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppColor.gray1F2937,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          "Block $userName?",
+          style: AppTextStyles.poppinsBold.copyWith(
+            color: Colors.white,
+            fontSize: 18.sp,
+          ),
+        ),
+        content: Text(
+          "You will no longer see posts, comments, or activities from $userName. This user will also not be able to interact with your content.",
+          style: TextStyle(color: AppColor.gray9CA3AF, fontSize: 13.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: AppColor.gray9CA3AF),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColor.redDC2626,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            onPressed: () {
+              Get.back();
+              toastification.show(
+                type: ToastificationType.info,
+                style: ToastificationStyle.fillColored,
+                primaryColor: AppColor.customPurple,
+                foregroundColor: Colors.white,
+                title: Text(
+                  "User Blocked",
+                  style: AppTextStyles.poppinsBold.copyWith(
+                    color: Colors.white,
+                  ),
+                ),
+                description: Text(
+                  "$userName has been blocked.",
+                  style: AppTextStyles.poppinsRegular.copyWith(
+                    color: Colors.white,
+                  ),
+                ),
+                alignment: Alignment.topRight,
+                autoCloseDuration: const Duration(seconds: 4),
+                borderRadius: BorderRadius.circular(12),
+                showProgressBar: true,
+              );
+            },
+            child: const Text(
+              "Block User",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showEditModal() {
     final controller = TextEditingController(text: currentContent);
     var isSaving = false.obs;
@@ -328,10 +502,9 @@ class _PostCardState extends State<PostCard>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                c.isOwner
-                                    ? SizedBox(
-                                        height: 20.h,
-                                        child: Row(
+                                SizedBox(
+                                  height: 20.h,
+                                  child: Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.center,
                                           children: [
@@ -373,6 +546,12 @@ class _PostCardState extends State<PostCard>
                                               ),
 
                                               onSelected: (value) async {
+                                                if (value == 'report') {
+                                                  _showReportDialog("Comment", c.userName);
+                                                }
+                                                if (value == 'block') {
+                                                  _showBlockUserDialog(c.userName);
+                                                }
                                                 if (value == 'edit') {
                                                   final editCtrl =
                                                       TextEditingController(
@@ -590,59 +769,93 @@ class _PostCardState extends State<PostCard>
                                                 }
                                               },
 
-                                              itemBuilder: (_) => [
-                                                PopupMenuItem(
-                                                  value: 'edit',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.edit_outlined,
-                                                        size: 18,
-                                                        color: Colors.white,
+                                              itemBuilder: (_) => c.isOwner
+                                                  ? [
+                                                      PopupMenuItem(
+                                                        value: 'edit',
+                                                        child: Row(
+                                                          children: [
+                                                            const Icon(
+                                                              Icons.edit_outlined,
+                                                              size: 18,
+                                                              color: Colors.white,
+                                                            ),
+                                                            SizedBox(width: 8.w),
+                                                            const Text(
+                                                              "Edit",
+                                                              style: TextStyle(
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
-                                                      SizedBox(width: 8.w),
-                                                      Text(
-                                                        "Edit",
-                                                        style: TextStyle(
-                                                          color: Colors.white,
+                                                      PopupMenuItem(
+                                                        value: 'delete',
+                                                        child: Row(
+                                                          children: [
+                                                            const Icon(
+                                                              Icons.delete_outline,
+                                                              size: 18,
+                                                              color:
+                                                                  AppColor.redDC2626,
+                                                            ),
+                                                            SizedBox(width: 8.w),
+                                                            const Text(
+                                                              "Delete",
+                                                              style: TextStyle(
+                                                                color: AppColor
+                                                                    .redDC2626,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ]
+                                                  : [
+                                                      PopupMenuItem(
+                                                        value: 'report',
+                                                        child: Row(
+                                                          children: [
+                                                            const Icon(
+                                                              Icons.flag_outlined,
+                                                              size: 18,
+                                                              color: Colors.amber,
+                                                            ),
+                                                            SizedBox(width: 8.w),
+                                                            const Text(
+                                                              "Report Comment",
+                                                              style: TextStyle(
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      PopupMenuItem(
+                                                        value: 'block',
+                                                        child: Row(
+                                                          children: [
+                                                            const Icon(
+                                                              Icons.block_outlined,
+                                                              size: 18,
+                                                              color:
+                                                                  AppColor.redDC2626,
+                                                            ),
+                                                            SizedBox(width: 8.w),
+                                                            const Text(
+                                                              "Block User",
+                                                              style: TextStyle(
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
                                                       ),
                                                     ],
-                                                  ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.delete_outline,
-                                                        size: 18,
-                                                        color:
-                                                            AppColor.redDC2626,
-                                                      ),
-                                                      SizedBox(width: 8.w),
-                                                      Text(
-                                                        "Delete",
-                                                        style: TextStyle(
-                                                          color: AppColor
-                                                              .redDC2626,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
                                             ),
                                           ],
                                         ),
-                                      )
-                                    : Text(
-                                        c.userName,
-                                        style: AppTextStyles.poppinsSemiBold
-                                            .copyWith(
-                                              color: Colors.white,
-                                              fontSize: 14.sp,
-                                            ),
                                       ),
                                 SizedBox(height: 5.h),
                                 Text(
@@ -785,78 +998,106 @@ class _PostCardState extends State<PostCard>
                 ),
               ),
               Spacer(),
-              if (widget.isowner)
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_horiz,
-                    color: AppColor.white.withOpacity(0.6),
-                  ),
-                  color: AppColor.gray1F2937,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  onSelected: (value) async {
-                    if (value == 'edit') _showEditModal();
-                    if (value == 'delete') {
-                      final confirmed = await Get.dialog<bool>(
-                        AlertDialog(
-                          backgroundColor: AppColor.gray1F2937,
-                          title: Text(
-                            "Delete Post?",
-                            style: TextStyle(color: Colors.white),
+              PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_horiz,
+                  color: AppColor.white.withOpacity(0.6),
+                ),
+                color: AppColor.gray1F2937,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                onSelected: (value) async {
+                  if (value == 'edit') _showEditModal();
+                  if (value == 'report') {
+                    _showReportDialog("Post", widget.name);
+                  }
+                  if (value == 'block') {
+                    _showBlockUserDialog(widget.name);
+                  }
+                  if (value == 'delete') {
+                    final confirmed = await Get.dialog<bool>(
+                      AlertDialog(
+                        backgroundColor: AppColor.gray1F2937,
+                        title: const Text(
+                          "Delete Post?",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        content: const Text(
+                          "This action cannot be undone.",
+                          style: TextStyle(color: AppColor.gray9CA3AF),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Get.back(result: false),
+                            child: const Text("Cancel"),
                           ),
-                          content: Text(
-                            "This action cannot be undone.",
-                            style: TextStyle(color: AppColor.gray9CA3AF),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Get.back(result: false),
-                              child: Text("Cancel"),
+                          TextButton(
+                            onPressed: () => Get.back(result: true),
+                            child: const Text(
+                              "Delete",
+                              style: TextStyle(color: AppColor.redDC2626),
                             ),
-                            TextButton(
-                              onPressed: () => Get.back(result: true),
-                              child: Text(
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true) {
+                      await Get.find<ForumController>().deleteForumPost(
+                        postId: widget.postId,
+                      );
+                    }
+                  }
+                },
+                itemBuilder: (_) => widget.isowner
+                    ? [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.edit_outlined, color: Colors.white),
+                              SizedBox(width: 12.w),
+                              const Text("Edit", style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.delete_outline, color: AppColor.redDC2626),
+                              SizedBox(width: 12.w),
+                              const Text(
                                 "Delete",
                                 style: TextStyle(color: AppColor.redDC2626),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed == true) {
-                        await Get.find<ForumController>().deleteForumPost(
-                          postId: widget.postId,
-                        );
-                      }
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_outlined, color: Colors.white),
-                          SizedBox(width: 12.w),
-                          Text("Edit", style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_outline, color: AppColor.redDC2626),
-                          SizedBox(width: 12.w),
-                          Text(
-                            "Delete",
-                            style: TextStyle(color: AppColor.redDC2626),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                        ),
+                      ]
+                    : [
+                        PopupMenuItem(
+                          value: 'report',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.flag_outlined, color: Colors.amber),
+                              SizedBox(width: 12.w),
+                              const Text("Report Post", style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'block',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.block_outlined, color: AppColor.redDC2626),
+                              SizedBox(width: 12.w),
+                              const Text("Block User", style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ],
+              ),
             ],
           ),
           SizedBox(height: 16.h),

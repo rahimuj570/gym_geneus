@@ -175,6 +175,21 @@ class ChatScreen extends StatelessWidget {
 
           return Column(
             children: [
+              // Health & Fitness AI Disclaimer
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                color: Colors.white.withOpacity(0.05),
+                child: Text(
+                  "Gym Genius AI provides fitness & nutrition insights for educational purposes only. Not medical advice.",
+                  style: TextStyle(
+                    color: AppColor.gray9CA3AF,
+                    fontSize: 10.5.sp,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
               Expanded(
                 child: Stack(
                   children: [

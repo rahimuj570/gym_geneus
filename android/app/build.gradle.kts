@@ -38,8 +38,8 @@ android {
         applicationId = "com.kenzeno.gymgeniusai"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 1
-        versionName = "1.0.1"
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
     signingConfigs {
         create("release") {
