@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../main.dart';
 import 'appconstants.dart';
+import '../services/api_client.dart';
 
 // ------------------------ Notification Channel ------------------------
 const AndroidNotificationChannel defaultNotificationChannel =
@@ -163,54 +164,27 @@ Future<void> initFCM() async {
 // ------------------------ Send Token to Backend ------------------------
 Future<void> sendTokenToBackend(String token) async {
   const String _baseUrl = AppConstants.baseUrl;
-  final String? loginToken = GetStorage().read<String>('loginToken');
-
-  if (loginToken == null) return;
-
   final url = '$_baseUrl/utils/register_device_token/';
 
-  final response = await http.post(
+  await ApiClient.post(
     Uri.parse(url),
-    headers: {
-      'Authorization': 'Bearer $loginToken',
-      'Content-Type': 'application/json',
-    },
-    body: jsonEncode({'device_token': token}),
-  );
-
-  FlutterDebugLogger.printJsonResponse(
-    url: url,
-    method: Method.POST,
+    body: {'device_token': token},
     tag: 'FCM-RegisterDeviceToken',
-    statusCode: response.statusCode,
-    responseBody: response.body,
   );
 }
 
 // ------------------------ Unregister Token ------------------------
 Future<void> unregisterFCM() async {
   const String _baseUrl = AppConstants.baseUrl;
-  final String? loginToken = GetStorage().read<String>('loginToken');
   final String? token = GetStorage().read<String>('FCMToken');
 
-  if (loginToken == null || token == null) return;
+  if (token == null) return;
 
   final url = '$_baseUrl/notification/unregister_device_token/';
 
-  final response = await http.post(
+  await ApiClient.post(
     Uri.parse(url),
-    headers: {
-      'Authorization': 'Bearer $loginToken',
-      'Content-Type': 'application/json',
-    },
-    body: jsonEncode({'token': token}),
-  );
-
-  FlutterDebugLogger.printJsonResponse(
-    url: url,
-    method: Method.POST,
+    body: {'token': token},
     tag: 'FCM-UnregisterDeviceToken',
-    statusCode: response.statusCode,
-    responseBody: response.body,
   );
 }

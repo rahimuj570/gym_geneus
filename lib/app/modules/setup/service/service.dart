@@ -2,8 +2,6 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:kenzeno/app/services/api_client.dart';
@@ -35,7 +33,7 @@ class SetupService extends GetxService {
       // Using ApiClient so token auto-refreshes on 401
       final response = await ApiClient.patch(
         Uri.parse("${AppConstants.baseUrl}/accounts/profile/update/"),
-        body: jsonEncode({"coach_type": coachId}),
+        body: {"coach_type": coachId},
         tag: 'Setup-UpdateCoach',
       );
 
@@ -60,12 +58,6 @@ class SetupService extends GetxService {
   }
 
   Future<bool> completeSetup() async {
-    final token = box.read("loginToken");
-    if (token == null) {
-      CustomSnackbar.showError("Not logged in. Please log in first.");
-      return false;
-    }
-
     final controller = Get.find<SetupController>();
     final schedulecontroller = Get.find<ScheduleController>();
 
@@ -108,89 +100,86 @@ class SetupService extends GetxService {
     }
 
     final url = "${AppConstants.baseUrl}/accounts/profile/update/";
-    var request = http.MultipartRequest(
-      'PATCH',
-      Uri.parse(url),
-    );
-
-    request.headers["Authorization"] = "Bearer $token";
-
-    final Map<String, String> fields = {};
-
-    if (Get.isRegistered<Authcontroller>()) {
-      final email = Get.find<Authcontroller>().emailController.text.trim();
-      if (email.isNotEmpty) fields["email"] = email;
-    }
-
-    if (controller.fullName.value.trim().isNotEmpty) {
-      fields["full_name"] = controller.fullName.value.trim();
-    }
-    if (controller.phonenumber.value.trim().isNotEmpty) {
-      fields["phone_number"] = controller.phonenumber.value.trim();
-    }
-
-    fields["gender"] = controller.selectedGender.value.trim().toLowerCase();
-
-    if (controller.selectedAge.value > 0) {
-      fields["age"] = controller.selectedAge.value.toString();
-      final birthYear = DateTime.now().year - controller.selectedAge.value;
-      fields["date_of_birth"] = "$birthYear-01-01";
-    }
-
-    if (controller.height.value > 0) {
-      fields["height_cm"] = controller.height.value.round().toString();
-    }
-
-    if (controller.weight.value > 0) {
-      final weightKg = controller.weightUnit.value == 'kg'
-          ? controller.weight.value.round().toString()
-          : (controller.weight.value / 2.20462).round().toString();
-      fields["weight_kg"] = weightKg;
-    }
-
-    // Goal and Activity Level
-    fields["goal"] = controller.selectedGoal.value.trim();
-    fields["activity_level"] =
-        controller.selectedActivityLevel.value.trim().toLowerCase();
-
-    // Coach
-    fields["coach_type"] = controller.selectedCoachId.value.toString();
-
-    // Schedule
-    fields["preferred_workout_time"] = schedulecontroller.preferredWorkoutTime;
-
-    request.fields.addAll(fields);
-
-    // Preferred workout days
-    for (final dayId in schedulecontroller.preferredWorkoutDayIds) {
-      request.fields['preferred_workout_day_ids'] = dayId.toString();
-    }
-
-    // Avatar
-    if (controller.profileImagePath.value.isNotEmpty) {
-      final imageFile = File(controller.profileImagePath.value);
-      if (await imageFile.exists()) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'avatar',
-            imageFile.path,
-            filename: 'profile.jpg',
-          ),
-        );
-      }
-    }
 
     try {
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      final responseBody = utf8.decode(response.bodyBytes);
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.PATCH,
+      final response = await ApiClient.sendMultipartRequest(
+        Uri.parse(url),
+        method: 'PATCH',
         tag: 'Setup-CompleteSetup',
-        statusCode: response.statusCode,
-        responseBody: responseBody,
+        buildRequest: (token) async {
+          final request = http.MultipartRequest('PATCH', Uri.parse(url));
+
+          if (token != null) {
+            request.headers["Authorization"] = "Bearer $token";
+          }
+
+          final Map<String, String> fields = {};
+
+          if (Get.isRegistered<Authcontroller>()) {
+            final email = Get.find<Authcontroller>().emailController.text.trim();
+            if (email.isNotEmpty) fields["email"] = email;
+          }
+
+          if (controller.fullName.value.trim().isNotEmpty) {
+            fields["full_name"] = controller.fullName.value.trim();
+          }
+          if (controller.phonenumber.value.trim().isNotEmpty) {
+            fields["phone_number"] = controller.phonenumber.value.trim();
+          }
+
+          fields["gender"] = controller.selectedGender.value.trim().toLowerCase();
+
+          if (controller.selectedAge.value > 0) {
+            fields["age"] = controller.selectedAge.value.toString();
+            final birthYear = DateTime.now().year - controller.selectedAge.value;
+            fields["date_of_birth"] = "$birthYear-01-01";
+          }
+
+          if (controller.height.value > 0) {
+            fields["height_cm"] = controller.height.value.round().toString();
+          }
+
+          if (controller.weight.value > 0) {
+            final weightKg = controller.weightUnit.value == 'kg'
+                ? controller.weight.value.round().toString()
+                : (controller.weight.value / 2.20462).round().toString();
+            fields["weight_kg"] = weightKg;
+          }
+
+          // Goal and Activity Level
+          fields["goal"] = controller.selectedGoal.value.trim();
+          fields["activity_level"] =
+              controller.selectedActivityLevel.value.trim().toLowerCase();
+
+          // Coach
+          fields["coach_type"] = controller.selectedCoachId.value.toString();
+
+          // Schedule
+          fields["preferred_workout_time"] =
+              schedulecontroller.preferredWorkoutTime;
+
+          request.fields.addAll(fields);
+
+          // Preferred workout days
+          for (final dayId in schedulecontroller.preferredWorkoutDayIds) {
+            request.fields['preferred_workout_day_ids'] = dayId.toString();
+          }
+
+          // Avatar
+          if (controller.profileImagePath.value.isNotEmpty) {
+            final imageFile = File(controller.profileImagePath.value);
+            if (await imageFile.exists()) {
+              request.files.add(
+                await http.MultipartFile.fromPath(
+                  'avatar',
+                  imageFile.path,
+                  filename: 'profile.jpg',
+                ),
+              );
+            }
+          }
+          return request;
+        },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -214,21 +203,10 @@ class SetupService extends GetxService {
   }
 
   Future<List<Coach>> fetchCoaches() async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Not logged in");
-
     final url = "${AppConstants.baseUrl}/accounts/coaches/";
-    final response = await http.get(
+    final response = await ApiClient.get(
       Uri.parse(url),
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
       tag: 'Setup-FetchCoaches',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -241,4 +219,3 @@ class SetupService extends GetxService {
     }
   }
 }
-

@@ -15,33 +15,31 @@ class ApiClient {
     Method method,
     Uri url,
     String tag,
-    Future<http.Response> Function(String? token) requestFn,
-  ) async {
+    Future<http.Response> Function(String? token) requestFn, {
+    bool isRetry = false,
+  }) async {
     final token = _box.read<String>('loginToken');
     var response = await requestFn(token);
 
     FlutterDebugLogger.printJsonResponse(
       url: url.toString(),
       method: method,
-      tag: tag,
+      tag: isRetry ? '$tag (Retried)' : tag,
       statusCode: response.statusCode,
       responseBody: response.body,
     );
 
-    if (response.statusCode == 401) {
+    if (response.statusCode == 401 && !isRetry) {
       print('🔒 401 Unauthorized for $url. Attempting token refresh...');
       final success = await _authProvider.refreshAccessToken();
       if (success) {
-        final newToken = _box.read<String>('loginToken');
         print('🔄 Retrying request with refreshed token...');
-        response = await requestFn(newToken);
-
-        FlutterDebugLogger.printJsonResponse(
-          url: url.toString(),
-          method: method,
-          tag: '$tag (Retried)',
-          statusCode: response.statusCode,
-          responseBody: response.body,
+        return _requestWithRetry(
+          method,
+          url,
+          tag,
+          requestFn,
+          isRetry: true,
         );
       } else {
         print('❌ Token refresh failed. Redirecting to login...');
@@ -173,5 +171,31 @@ class ApiClient {
         encoding: encoding,
       );
     });
+  }
+
+  /// Sends a multipart request with auto token-refresh on 401.
+  static Future<http.Response> sendMultipartRequest(
+    Uri url, {
+    String method = 'POST',
+    required Future<http.MultipartRequest> Function(String? token) buildRequest,
+    String tag = 'ApiClient-Multipart',
+  }) async {
+    final httpMethod = method.toUpperCase() == 'PATCH'
+        ? Method.PATCH
+        : (method.toUpperCase() == 'PUT' ? Method.PUT : Method.POST);
+
+    return _requestWithRetry(
+      httpMethod,
+      url,
+      tag,
+      (token) async {
+        final request = await buildRequest(token);
+        if (token != null && !request.headers.containsKey('Authorization')) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+        final streamedResponse = await request.send();
+        return http.Response.fromStream(streamedResponse);
+      },
+    );
   }
 }

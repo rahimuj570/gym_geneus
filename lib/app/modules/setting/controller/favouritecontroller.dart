@@ -5,6 +5,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:kenzeno/app/constants/appconstants.dart';
+import 'package:kenzeno/app/services/api_client.dart';
 
 import 'package:kenzeno/app/modules/home/controllers/homecontroller.dart';
 import 'package:kenzeno/app/modules/home/controllers/searchcontroller.dart';
@@ -31,28 +32,14 @@ class FavouriteController extends GetxController {
   Future<void> fetchFavorites() async {
     try {
       isLoading.value = true;
-      final token = box.read("loginToken");
-      if (token == null) throw "No token";
-
       final url = '${AppConstants.baseUrl}/utils/favorites/';
-      final response = await http.get(
+      final response = await ApiClient.get(
         Uri.parse(url),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Accept": "application/json",
-        },
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.GET,
         tag: 'Setting-Favorites',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
+        final List data = jsonDecode(utf8.decode(response.bodyBytes));
         favorites.assignAll(
           data.map((json) => FavoriteItem.fromJson(json)).toList(),
         );

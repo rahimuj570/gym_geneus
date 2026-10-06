@@ -2,10 +2,9 @@
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:http/http.dart' as http;
+import 'package:kenzeno/app/services/api_client.dart';
 import '../../../constants/appconstants.dart';
 import '../models/post_modeel.dart';
 
@@ -31,27 +30,11 @@ class ForumController extends GetxController {
   Future<void> fetchPosts({bool showLoading = true}) async {
     if (showLoading) isLoading(true);
     try {
-      final token = box.read("loginToken");
-      if (token == null) throw Exception("Not logged in");
-
       final url = "${AppConstants.baseUrl}/community/forum-posts/";
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: {
-              "Authorization": "Bearer $token",
-              "Accept": "application/json",
-            },
-          )
-          .timeout(const Duration(seconds: 15));
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.GET,
+      final response = await ApiClient.get(
+        Uri.parse(url),
         tag: 'Forum-FetchPosts',
-        statusCode: response.statusCode,
-        responseBody: response.body,
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
@@ -91,23 +74,12 @@ class ForumController extends GetxController {
   }
 
   Future<void> fetchComments(int postId) async {
-    final token = box.read("loginToken");
-    if (token == null) return;
-
     try {
       isLoadingComments.value = true;
       final url = "${AppConstants.baseUrl}/community/forum-comments/$postId/";
-      final response = await http.get(
+      final response = await ApiClient.get(
         Uri.parse(url),
-        headers: {"Authorization": "Bearer $token"},
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.GET,
         tag: 'Forum-FetchComments',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -150,9 +122,6 @@ class ForumController extends GetxController {
 
   // LIKE / UNLIKE POST (Optimistic + Instant UI)
   Future<void> toggleLike(int id) async {
-    final token = box.read("loginToken");
-    if (token == null) return;
-
     final index = posts.indexWhere((p) => p.id == id);
     if (index == -1) return;
 
@@ -170,21 +139,10 @@ class ForumController extends GetxController {
 
     try {
       final url = "${AppConstants.baseUrl}/community/forum-post-like/";
-      final response = await http.post(
+      final response = await ApiClient.post(
         Uri.parse(url),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({"post": id}),
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.POST,
+        body: {"post": id},
         tag: 'Forum-ToggleLike',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode != 200 && response.statusCode != 201) {
@@ -226,26 +184,12 @@ class ForumController extends GetxController {
     required int postId,
     required String content,
   }) async {
-    final token = box.read("loginToken");
-    if (token == null) return false;
-
     try {
       final url = "${AppConstants.baseUrl}/community/forum-comment-create/";
-      final response = await http.post(
+      final response = await ApiClient.post(
         Uri.parse(url),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({"post": postId, "content": content.trim()}),
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.POST,
+        body: {"post": postId, "content": content.trim()},
         tag: 'Forum-CreateComment',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 201) {
@@ -270,27 +214,13 @@ class ForumController extends GetxController {
     required int postId,
     required String newContent,
   }) async {
-    final token = box.read("loginToken");
-    if (token == null) return false;
-
     try {
       isPosting.value = true;
       final url = "${AppConstants.baseUrl}/community/forum-posts/$postId/";
-      final response = await http.patch(
+      final response = await ApiClient.patch(
         Uri.parse(url),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({"content": newContent.trim()}),
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.PATCH,
+        body: {"content": newContent.trim()},
         tag: 'Forum-UpdatePost',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -328,22 +258,11 @@ class ForumController extends GetxController {
   }
 
   Future<bool> deleteForumPost({required int postId}) async {
-    final token = box.read("loginToken");
-    if (token == null) return false;
-
     try {
       final url = "${AppConstants.baseUrl}/community/forum-posts/$postId/";
-      final response = await http.delete(
+      final response = await ApiClient.delete(
         Uri.parse(url),
-        headers: {"Authorization": "Bearer $token"},
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.DELETE,
         tag: 'Forum-DeletePost',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 204 || response.statusCode == 200) {
@@ -395,27 +314,13 @@ class ForumController extends GetxController {
     required int commentId,
     required String newContent,
   }) async {
-    final token = box.read("loginToken");
-    if (token == null) return false;
-
     try {
       isLoadingComments.value = true;
       final url = "${AppConstants.baseUrl}/community/forum-comment/$commentId/";
-      final response = await http.patch(
+      final response = await ApiClient.patch(
         Uri.parse(url),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({"content": newContent.trim()}),
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.PATCH,
+        body: {"content": newContent.trim()},
         tag: 'Forum-UpdateComment',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -458,22 +363,11 @@ class ForumController extends GetxController {
     required int commentId,
     required int postId,
   }) async {
-    final token = box.read("loginToken");
-    if (token == null) return false;
-
     try {
       final url = "${AppConstants.baseUrl}/community/forum-comment/$commentId/";
-      final response = await http.delete(
+      final response = await ApiClient.delete(
         Uri.parse(url),
-        headers: {"Authorization": "Bearer $token"},
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.DELETE,
         tag: 'Forum-DeleteComment',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 204 || response.statusCode == 200) {
@@ -515,51 +409,17 @@ class ForumController extends GetxController {
   }
 
   Future<bool> createForumPost({required String content}) async {
-    final token = box.read("loginToken");
-    if (token == null) {
-      toastification.show(
-        type: ToastificationType.error,
-        style: ToastificationStyle.fillColored,
-        primaryColor: Colors.red,
-        foregroundColor: Colors.white,
-        title: Text(
-          "Error",
-          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
-        ),
-        description: Text(
-          "Login required",
-          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
-        ),
-        alignment: Alignment.topRight,
-        autoCloseDuration: const Duration(seconds: 4),
-        borderRadius: BorderRadius.circular(12),
-        showProgressBar: true,
-      );
-      return false;
-    }
-
     try {
       isPosting.value = true;
       final url = "${AppConstants.baseUrl}/community/forum-posts/";
-      final response = await http.post(
+      final response = await ApiClient.post(
         Uri.parse(url),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({"content": content.trim()}),
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.POST,
+        body: {"content": content.trim()},
         tag: 'Forum-CreatePost',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 201) {
-        final newPost = ForumPost.fromJson(jsonDecode(response.body));
+        final newPost = ForumPost.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
         posts.insert(0, newPost);
         toastification.show(
           type: ToastificationType.success,

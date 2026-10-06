@@ -2,7 +2,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:kenzeno/app/services/api_client.dart';
@@ -17,12 +16,8 @@ import 'package:kenzeno/app/res/colors/colors.dart';
 class SettingService {
   final box = GetStorage();
 
-  // GET: Fetch full profile
   // GET: Fetch current profile
   Future<ProfileModel> fetchProfile() async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Authentication required');
-
     final url = '${AppConstants.baseUrl}/accounts/profile/';
     final response = await ApiClient.get(
       Uri.parse(url),
@@ -53,70 +48,65 @@ class SettingService {
     String? activityLevel,
     String? avatar,
   }) async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Authentication required');
-
     final url = '${AppConstants.baseUrl}/accounts/profile/update/';
-    var request = http.MultipartRequest(
-      'PATCH',
+
+    final response = await ApiClient.sendMultipartRequest(
       Uri.parse(url),
-    );
-
-    request.headers["Authorization"] = "Bearer $token";
-
-    if (fullName != null && fullName.trim().isNotEmpty) {
-      request.fields['full_name'] = fullName.trim();
-    }
-    if (phoneNumber != null && phoneNumber.trim().isNotEmpty) {
-      request.fields['phone_number'] = phoneNumber.trim();
-    }
-    if (dateOfBirth != null && dateOfBirth.trim().isNotEmpty) {
-      request.fields['date_of_birth'] = dateOfBirth.trim();
-    }
-    if (age != null && age > 0) {
-      request.fields['age'] = age.toString();
-    }
-    if (gender != null && gender.trim().isNotEmpty) {
-      request.fields['gender'] = gender.trim().toLowerCase();
-    }
-    if (heightCm != null && heightCm > 0) {
-      request.fields['height_cm'] = heightCm.toString();
-    }
-    if (weightKg != null && weightKg > 0) {
-      request.fields['weight_kg'] = weightKg.toString();
-    }
-    if (goal != null && goal.trim().isNotEmpty) {
-      request.fields['goal'] = goal.trim();
-    }
-    if (activityLevel != null && activityLevel.trim().isNotEmpty) {
-      request.fields['activity_level'] = activityLevel.trim();
-    }
-
-    // Handle avatar as a file upload if it's a local path
-    if (avatar != null && avatar.isNotEmpty && !avatar.startsWith('http')) {
-      final file = File(avatar);
-      if (await file.exists()) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'avatar',
-            file.path,
-            filename: 'avatar.jpg',
-          ),
-        );
-      }
-    }
-
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-    final responseBody = utf8.decode(response.bodyBytes);
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.PATCH,
+      method: 'PATCH',
       tag: 'Setting-UpdateProfile',
-      statusCode: response.statusCode,
-      responseBody: responseBody,
+      buildRequest: (token) async {
+        final request = http.MultipartRequest('PATCH', Uri.parse(url));
+
+        if (token != null) {
+          request.headers["Authorization"] = "Bearer $token";
+        }
+
+        if (fullName != null && fullName.trim().isNotEmpty) {
+          request.fields['full_name'] = fullName.trim();
+        }
+        if (phoneNumber != null && phoneNumber.trim().isNotEmpty) {
+          request.fields['phone_number'] = phoneNumber.trim();
+        }
+        if (dateOfBirth != null && dateOfBirth.trim().isNotEmpty) {
+          request.fields['date_of_birth'] = dateOfBirth.trim();
+        }
+        if (age != null && age > 0) {
+          request.fields['age'] = age.toString();
+        }
+        if (gender != null && gender.trim().isNotEmpty) {
+          request.fields['gender'] = gender.trim().toLowerCase();
+        }
+        if (heightCm != null && heightCm > 0) {
+          request.fields['height_cm'] = heightCm.toString();
+        }
+        if (weightKg != null && weightKg > 0) {
+          request.fields['weight_kg'] = weightKg.toString();
+        }
+        if (goal != null && goal.trim().isNotEmpty) {
+          request.fields['goal'] = goal.trim();
+        }
+        if (activityLevel != null && activityLevel.trim().isNotEmpty) {
+          request.fields['activity_level'] = activityLevel.trim();
+        }
+
+        // Handle avatar as a file upload if it's a local path
+        if (avatar != null && avatar.isNotEmpty && !avatar.startsWith('http')) {
+          final file = File(avatar);
+          if (await file.exists()) {
+            request.files.add(
+              await http.MultipartFile.fromPath(
+                'avatar',
+                file.path,
+                filename: 'avatar.jpg',
+              ),
+            );
+          }
+        }
+        return request;
+      },
     );
+
+    final responseBody = utf8.decode(response.bodyBytes);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(responseBody);
@@ -148,31 +138,17 @@ class SettingService {
 
   // DELETE: /api/accounts/delete-account/
   Future<bool> deleteAccount() async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Authentication required');
-
     final url = '${AppConstants.baseUrl}/accounts/delete-account/';
 
     http.Response response;
     try {
-      response = await http.delete(
+      response = await ApiClient.delete(
         Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
+        tag: 'Setting-DeleteAccount',
       );
     } catch (e) {
       throw Exception('Network error: $e');
     }
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.DELETE,
-      tag: 'Setting-DeleteAccount',
-      statusCode: response.statusCode,
-      responseBody: response.body,
-    );
 
     if (response.statusCode == 200 ||
         response.statusCode == 204 ||
@@ -181,20 +157,9 @@ class SettingService {
     } else if (response.statusCode == 405) {
       // Fallback to POST if server expects POST
       try {
-        final postResponse = await http.post(
+        final postResponse = await ApiClient.post(
           Uri.parse(url),
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Accept': 'application/json',
-          },
-        );
-
-        FlutterDebugLogger.printJsonResponse(
-          url: url,
-          method: Method.POST,
           tag: 'Setting-DeleteAccount-Fallback',
-          statusCode: postResponse.statusCode,
-          responseBody: postResponse.body,
         );
 
         if (postResponse.statusCode == 200 ||
@@ -218,9 +183,6 @@ class SettingService {
     String? search,
     String? type, // general, account, service
   }) async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final params = <String, String>{};
     if (search != null && search.isNotEmpty) params['search'] = search;
     if (type != null && type.isNotEmpty) params['type'] = type;
@@ -230,20 +192,9 @@ class SettingService {
     ).replace(queryParameters: params);
 
     try {
-      final response = await http.get(
+      final response = await ApiClient.get(
         uri,
-        headers: {
-          "Authorization": "Bearer $token",
-          "Accept": "application/json",
-        },
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: uri.toString(),
-        method: Method.GET,
         tag: 'Setting-FetchFAQs',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       if (response.statusCode == 200) {
@@ -259,21 +210,10 @@ class SettingService {
   }
 
   Future<List<ContactOption>> fetchContactOptions() async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final url = '${AppConstants.baseUrl}/utils/contact-options/';
-    final response = await http.get(
+    final response = await ApiClient.get(
       Uri.parse(url),
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
       tag: 'Setting-ContactOptions',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -284,23 +224,11 @@ class SettingService {
     }
   }
 
-  // Example: lib/services/utils_service.dart  or  setting_service.dart
-
   Future<Map<String, dynamic>> fetchPrivacyPolicyContent() async {
-    final token = GetStorage().read("loginToken");
-
     final url = "${AppConstants.baseUrl}/utils/privacy-policy/";
-    final response = await http.get(
+    final response = await ApiClient.get(
       Uri.parse(url),
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
       tag: 'Setting-PrivacyPolicy',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -315,29 +243,6 @@ class SettingService {
     required String newPassword,
     required String confirmPassword,
   }) async {
-    final token = box.read("loginToken");
-    if (token == null) {
-      toastification.show(
-        type: ToastificationType.error,
-        style: ToastificationStyle.fillColored,
-        primaryColor: Colors.red,
-        foregroundColor: Colors.white,
-        title: Text(
-          "Error",
-          style: AppTextStyles.poppinsBold.copyWith(color: Colors.white),
-        ),
-        description: Text(
-          "You are not logged in",
-          style: AppTextStyles.poppinsRegular.copyWith(color: Colors.white),
-        ),
-        alignment: Alignment.topRight,
-        autoCloseDuration: const Duration(seconds: 4),
-        borderRadius: BorderRadius.circular(12),
-        showProgressBar: true,
-      );
-      return null;
-    }
-
     final payload = {
       "old_password": oldPassword,
       "new_password": newPassword,
@@ -346,25 +251,13 @@ class SettingService {
 
     final url = "${AppConstants.baseUrl}/accounts/change-password/";
     try {
-      final response = await http.post(
+      final response = await ApiClient.post(
         Uri.parse(url),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(payload),
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.POST,
+        body: payload,
         tag: 'Setting-ChangePassword',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
-
-      final Map<String, dynamic> data = jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Success
@@ -475,24 +368,10 @@ class SettingService {
 
   // GET: /api/utils/notification-settings/
   Future<NotificationSettingsModel> fetchNotificationSettings() async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Authentication required');
-
     final url = '${AppConstants.baseUrl}/utils/notification-settings/';
-    final response = await http.get(
+    final response = await ApiClient.get(
       Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
       tag: 'Setting-FetchNotificationSettings',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -511,9 +390,6 @@ class SettingService {
     bool? vibrate,
     bool? lockScreen,
   }) async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Authentication required');
-
     final url = '${AppConstants.baseUrl}/utils/notification-settings/';
     final body = <String, dynamic>{};
     if (generalNotifications != null) {
@@ -532,22 +408,10 @@ class SettingService {
       body['lock_screen'] = lockScreen;
     }
 
-    final response = await http.patch(
+    final response = await ApiClient.patch(
       Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode(body),
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.PATCH,
+      body: body,
       tag: 'Setting-UpdateNotificationSettings',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {

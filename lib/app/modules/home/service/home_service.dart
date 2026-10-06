@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -25,29 +25,12 @@ class HomeService extends GetxService {
   /// Fetch all articles
   Future<List<Article>> fetchArticles() async {
     try {
-      final token = box.read("loginToken");
       final url = Uri.parse("${AppConstants.baseUrl}/articles/");
-
-      final headers = <String, String>{
-        "Accept": "application/json",
-      };
-      if (token != null && token.toString().isNotEmpty) {
-        headers["Authorization"] = "Bearer $token";
-      }
-
-      var response = await http.get(url, headers: headers);
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url.toString(),
-        method: Method.GET,
-        tag: 'Home-Articles',
-        statusCode: response.statusCode,
-        responseBody: response.body,
-      );
+      var response = await ApiClient.get(url, tag: 'Home-Articles');
 
       // Fallback: If user-specific fetch failed (e.g. status code 400/403 due to missing DOB),
       // fetch general public articles without token
-      if (response.statusCode != 200 && token != null) {
+      if (response.statusCode != 200) {
         response = await http.get(url, headers: {"Accept": "application/json"});
         FlutterDebugLogger.printJsonResponse(
           url: url.toString(),
@@ -59,7 +42,7 @@ class HomeService extends GetxService {
       }
 
       if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
+        final List data = jsonDecode(utf8.decode(response.bodyBytes));
         return data.map((json) => Article.fromJson(json)).toList();
       }
     } catch (e) {
@@ -70,24 +53,12 @@ class HomeService extends GetxService {
 
   /// NEW: Fetch single article by ID
   Future<Article> fetchArticleById(int id) async {
-    final token = box.read("loginToken");
-    final url = Uri.parse("${AppConstants.baseUrl}/articles/$id");
-
-    final response = await http.get(
-      url,
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url.toString(),
-      method: Method.GET,
-      tag: 'Home-ArticleById',
-      statusCode: response.statusCode,
-      responseBody: response.body,
-    );
+    final url = Uri.parse("${AppConstants.baseUrl}/articles/$id/");
+    final response = await ApiClient.get(url, tag: 'Home-ArticleById');
 
     if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
+      final Map<String, dynamic> data =
+          jsonDecode(utf8.decode(response.bodyBytes));
       return Article.fromJson(data);
     } else if (response.statusCode == 404) {
       throw Exception("Article not found");
@@ -97,28 +68,13 @@ class HomeService extends GetxService {
   }
 
   Future<List<WorkoutVideo>> fetchWorkoutVideos() async {
-    final token = box.read("loginToken");
     final url = Uri.parse("${AppConstants.baseUrl}/articles/workout-videos/");
 
     try {
-      final response = await http.get(
-        url,
-        headers: {
-          "Authorization": "Bearer $token",
-          "Accept": "application/json",
-        },
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url.toString(),
-        method: Method.GET,
-        tag: 'Home-WorkoutVideos',
-        statusCode: response.statusCode,
-        responseBody: response.body,
-      );
+      final response = await ApiClient.get(url, tag: 'Home-WorkoutVideos');
 
       if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
+        final List data = jsonDecode(utf8.decode(response.bodyBytes));
         return data.map((json) => WorkoutVideo.fromJson(json)).toList();
       } else {
         throw Exception(
@@ -168,7 +124,9 @@ class HomeService extends GetxService {
       tag: 'Home-MarkAllNotificationsRead',
     );
 
-    if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 204) {
       return true;
     } else {
       throw Exception("Failed to mark all notifications as read");
@@ -209,9 +167,6 @@ class HomeService extends GetxService {
     required String challengeType, // "DAILY" or "WEEKLY"
     bool availableOnly = true,
   }) async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Login required');
-
     final queryParams = {
       'challenge_type': challengeType,
       if (availableOnly) 'available_only': 'true',
@@ -221,25 +176,17 @@ class HomeService extends GetxService {
       '${AppConstants.baseUrl}/gamification/challenges/',
     ).replace(queryParameters: queryParams);
 
-    final response = await http.get(
+    final response = await ApiClient.get(
       uri,
-      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.GET,
       tag: 'Home-Challenges',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       final List<dynamic> data = json['data'];
       return data.map((item) => Challenge.fromJson(item)).toList();
     } else {
-      final error = jsonDecode(response.body);
+      final error = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(
         error['message'] ?? error['detail'] ?? 'Failed to load challenges',
       );
@@ -249,28 +196,13 @@ class HomeService extends GetxService {
   /// Start Challenge: POST /api/gamification/challenges/start/
   /// Body: {"challenge_id": 3}
   Future<Map<String, dynamic>> startChallenge(int challengeId) async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Login required');
-
     final uri = Uri.parse(
       '${AppConstants.baseUrl}/gamification/challenges/start/',
     );
-    final response = await http.post(
+    final response = await ApiClient.post(
       uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'challenge_id': challengeId}),
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.POST,
+      body: {'challenge_id': challengeId},
       tag: 'Gamification-StartChallenge',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -286,26 +218,12 @@ class HomeService extends GetxService {
 
   /// Get Challenge Details & Progress: GET /api/gamification/challenges/{id}/
   Future<Challenge> fetchChallengeDetail(int challengeId) async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Login required');
-
     final uri = Uri.parse(
       '${AppConstants.baseUrl}/gamification/challenges/$challengeId/',
     );
-    final response = await http.get(
+    final response = await ApiClient.get(
       uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.GET,
       tag: 'Gamification-ChallengeDetail',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -328,31 +246,16 @@ class HomeService extends GetxService {
     required int challengeId,
     required int exerciseIndex,
   }) async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Login required');
-
     final uri = Uri.parse(
       '${AppConstants.baseUrl}/gamification/challenges/complete-exercise/',
     );
-    final response = await http.post(
+    final response = await ApiClient.post(
       uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
+      body: {
         'challenge_id': challengeId,
         'exercise_index': exerciseIndex,
-      }),
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.POST,
+      },
       tag: 'Gamification-CompleteExercise',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -371,28 +274,13 @@ class HomeService extends GetxService {
   Future<Map<String, dynamic>> claimChallengeReward(
     int challengeProgressId,
   ) async {
-    final token = box.read('loginToken');
-    if (token == null) throw Exception('Login required');
-
     final uri = Uri.parse(
       '${AppConstants.baseUrl}/gamification/challenges/claim-reward/',
     );
-    final response = await http.post(
+    final response = await ApiClient.post(
       uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'challenge_progress_id': challengeProgressId}),
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.POST,
+      body: {'challenge_progress_id': challengeProgressId},
       tag: 'Gamification-ClaimReward',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -408,27 +296,17 @@ class HomeService extends GetxService {
 
   // In your WorkoutService class
   Future<TrackProgress> fetchDailyProgress({String? date}) async {
-    final token = GetStorage().read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final todayFormatted = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final queryDate = (date != null && date.trim().isNotEmpty) ? date.trim() : todayFormatted;
+    final queryDate =
+        (date != null && date.trim().isNotEmpty) ? date.trim() : todayFormatted;
 
     final uri = Uri.parse(
       "${AppConstants.baseUrl}/workouts/daily-progress/",
     ).replace(queryParameters: {'date': queryDate});
 
-    final response = await http.get(
+    final response = await ApiClient.get(
       uri,
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.GET,
       tag: 'Home-DailyProgress',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -444,9 +322,6 @@ class HomeService extends GetxService {
     int? month,
     int? year,
   }) async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final Map<String, dynamic> queryParams = {};
     if (month != null) queryParams['month'] = month.toString();
     if (year != null) queryParams['year'] = year.toString();
@@ -455,17 +330,9 @@ class HomeService extends GetxService {
       "${AppConstants.baseUrl}/gallery/dashboard/",
     ).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-    final response = await http.get(
+    final response = await ApiClient.get(
       uri,
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.GET,
       tag: 'Gallery-Dashboard',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -473,7 +340,7 @@ class HomeService extends GetxService {
       return GalleryDashboardResponse.fromJson(json);
     } else {
       try {
-        final error = jsonDecode(response.body);
+        final error = jsonDecode(utf8.decode(response.bodyBytes));
         throw Exception(
           error['detail'] ??
               error['message'] ??
@@ -481,47 +348,39 @@ class HomeService extends GetxService {
         );
       } catch (e) {
         if (e is Exception && !e.toString().contains('FormatException')) rethrow;
-        throw Exception("Server error (${response.statusCode}): ${response.body}");
+        throw Exception(
+            "Server error (${response.statusCode}): ${response.body}");
       }
     }
   }
 
   // In your HomeService class
   // HomeService.dart — FINAL VERSION
-  Future<Map<String, dynamic>?> uploadProgressPhoto({required Uint8List imageBytes}) async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
+  Future<Map<String, dynamic>?> uploadProgressPhoto({
+    required Uint8List imageBytes,
+  }) async {
     final url = "${AppConstants.baseUrl}/gallery/";
 
     try {
-      var request = http.MultipartRequest(
-        'POST',
+      final response = await ApiClient.sendMultipartRequest(
         Uri.parse(url),
-      );
-
-      request.headers['Authorization'] = 'Bearer $token';
-
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'image', // ← exact field name your DRF serializer uses
-          imageBytes,
-          filename: 'photo.jpg',
-          contentType: MediaType('image', 'jpeg'),
-        ),
-      );
-
-      // DO NOT send progress_type → your AI detects it automatically
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url,
-        method: Method.POST,
+        method: 'POST',
         tag: 'Gallery-UploadPhoto',
-        statusCode: response.statusCode,
-        responseBody: response.body,
+        buildRequest: (token) async {
+          final request = http.MultipartRequest('POST', Uri.parse(url));
+          if (token != null) {
+            request.headers['Authorization'] = 'Bearer $token';
+          }
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'image',
+              imageBytes,
+              filename: 'photo.jpg',
+              contentType: MediaType('image', 'jpeg'),
+            ),
+          );
+          return request;
+        },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -544,22 +403,11 @@ class HomeService extends GetxService {
 
   // Add this if not exists — fetches ALL gallery images (for ProgressGalleryPage)
   Future<List<GalleryImage>> fetchAllGalleryImages() async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final url = "${AppConstants.baseUrl}/gallery/";
 
-    final response = await http.get(
+    final response = await ApiClient.get(
       Uri.parse(url),
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
       tag: 'Gallery-AllImages',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -570,35 +418,29 @@ class HomeService extends GetxService {
       } else if (decoded is Map<String, dynamic>) {
         results = decoded['results'] ?? decoded['data'] ?? [];
       }
-      return results.map((item) => GalleryImage.fromJson(item as Map<String, dynamic>)).toList();
+      return results
+          .map((item) => GalleryImage.fromJson(item as Map<String, dynamic>))
+          .toList();
     } else {
       try {
-        final error = jsonDecode(response.body);
-        throw Exception(error['detail'] ?? error['message'] ?? "Failed to load gallery images (${response.statusCode})");
+        final error = jsonDecode(utf8.decode(response.bodyBytes));
+        throw Exception(error['detail'] ??
+            error['message'] ??
+            "Failed to load gallery images (${response.statusCode})");
       } catch (e) {
         if (e is Exception && !e.toString().contains('FormatException')) rethrow;
-        throw Exception("Server error (${response.statusCode}): ${response.body}");
+        throw Exception(
+            "Server error (${response.statusCode}): ${response.body}");
       }
     }
   }
 
   Future<GalleryComparisonResponse> fetchGalleryComparison() async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final url = "${AppConstants.baseUrl}/gallery/comparison/";
 
-    final response = await http.get(
+    final response = await ApiClient.get(
       Uri.parse(url),
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url,
-      method: Method.GET,
       tag: 'Gallery-Comparison',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -606,7 +448,7 @@ class HomeService extends GetxService {
       return GalleryComparisonResponse.fromJson(json as Map<String, dynamic>);
     } else {
       try {
-        final error = jsonDecode(response.body);
+        final error = jsonDecode(utf8.decode(response.bodyBytes));
         throw Exception(
           error['detail'] ??
               error['message'] ??
@@ -614,30 +456,20 @@ class HomeService extends GetxService {
         );
       } catch (e) {
         if (e is Exception && !e.toString().contains('FormatException')) rethrow;
-        throw Exception("Server error (${response.statusCode}): ${response.body}");
+        throw Exception(
+            "Server error (${response.statusCode}): ${response.body}");
       }
     }
   }
 
   Future<LeaderboardResponse> fetchLeaderboard({int limit = 50}) async {
-    final token = GetStorage().read("loginToken");
-    if (token == null) throw Exception("Login required");
-
     final uri = Uri.parse(
       "${AppConstants.baseUrl}/gamification/leaderboard/",
     ).replace(queryParameters: {'limit': limit.toString()});
 
-    final response = await http.get(
+    final response = await ApiClient.get(
       uri,
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.GET,
       tag: 'Home-Leaderboard',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -649,22 +481,11 @@ class HomeService extends GetxService {
   }
 
   Future<List<Workout>> fetchRecommendedWorkouts() async {
-    final token = box.read("loginToken");
-    if (token == null) throw Exception("Not logged in");
-
     final url = Uri.parse("${AppConstants.baseUrl}/workouts/recommendation/");
 
-    final response = await http.get(
+    final response = await ApiClient.get(
       url,
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: url.toString(),
-      method: Method.GET,
       tag: 'Home-RecommendedWorkouts',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -678,22 +499,13 @@ class HomeService extends GetxService {
   }
 
   Future<Map<String, List<dynamic>>> search(String query) async {
-    final token = box.read("loginToken");
     final uri = Uri.parse("${AppConstants.baseUrl}/utils/search/").replace(
       queryParameters: {'q': query},
     );
 
-    final response = await http.get(
+    final response = await ApiClient.get(
       uri,
-      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
-    );
-
-    FlutterDebugLogger.printJsonResponse(
-      url: uri.toString(),
-      method: Method.GET,
       tag: 'Home-Search',
-      statusCode: response.statusCode,
-      responseBody: response.body,
     );
 
     if (response.statusCode == 200) {
@@ -704,8 +516,10 @@ class HomeService extends GetxService {
       final List<dynamic> articlesJson = data['articles'] ?? [];
 
       return {
-        'workouts': workoutsJson.map((json) => Workout.fromJson(json)).toList(),
-        'articles': articlesJson.map((json) => Article.fromJson(json)).toList(),
+        'workouts':
+            workoutsJson.map((json) => Workout.fromJson(json)).toList(),
+        'articles':
+            articlesJson.map((json) => Article.fromJson(json)).toList(),
       };
     } else {
       throw Exception("Failed to perform search: ${response.statusCode}");
@@ -718,30 +532,15 @@ class HomeService extends GetxService {
     required int objectId,
   }) async {
     try {
-      final token = box.read("loginToken");
-      if (token == null) return false;
-
       final url = Uri.parse("${AppConstants.baseUrl}/utils/favorites/toggle/");
 
-      final response = await http.post(
+      final response = await ApiClient.post(
         url,
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: jsonEncode({
+        body: {
           "content_type": contentType,
           "object_id": objectId,
-        }),
-      );
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url.toString(),
-        method: Method.POST,
+        },
         tag: 'Home-ToggleFavorite',
-        statusCode: response.statusCode,
-        responseBody: response.body,
       );
 
       return response.statusCode == 200 || response.statusCode == 201;
@@ -754,25 +553,8 @@ class HomeService extends GetxService {
   /// Fetch Home Overview (Daily Workout Session, Daily Challenge, Workouts, Articles)
   Future<Map<String, dynamic>> fetchHomeOverview() async {
     try {
-      final token = box.read("loginToken");
       final url = Uri.parse("${AppConstants.baseUrl}/accounts/home/");
-
-      final headers = <String, String>{
-        "Accept": "application/json",
-      };
-      if (token != null && token.toString().isNotEmpty) {
-        headers["Authorization"] = "Bearer $token";
-      }
-
-      final response = await http.get(url, headers: headers);
-
-      FlutterDebugLogger.printJsonResponse(
-        url: url.toString(),
-        method: Method.GET,
-        tag: 'Home-Overview',
-        statusCode: response.statusCode,
-        responseBody: response.body,
-      );
+      final response = await ApiClient.get(url, tag: 'Home-Overview');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> json =
@@ -809,4 +591,3 @@ class HomeService extends GetxService {
     }
   }
 }
-
