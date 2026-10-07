@@ -14,6 +14,7 @@ import '../model/workoutmodel.dart';
 import 'package:kenzeno/app/modules/setting/controller/profilecontroller.dart';
 import 'package:kenzeno/app/modules/home/controllers/homecontroller.dart';
 import 'package:toastification/toastification.dart';
+import '../../../constants/appconstants.dart';
 
 class ExerciseDetailsScreen extends StatefulWidget {
   final dynamic workutid;
@@ -526,9 +527,21 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen>
       await videoController.value?.dispose();
       videoController.value = null;
 
-      final controller = exercise.videoUrl!.startsWith('http')
-          ? VideoPlayerController.network(exercise.videoUrl!)
-          : VideoPlayerController.asset(exercise.videoUrl!);
+      var formattedUrl = exercise.videoUrl!.trim();
+      if (formattedUrl.startsWith('/')) {
+        formattedUrl = "${AppConstants.baseUrimage}$formattedUrl";
+      } else if (!formattedUrl.startsWith('http://') &&
+          !formattedUrl.startsWith('https://') &&
+          !formattedUrl.startsWith('assets/')) {
+        formattedUrl = "${AppConstants.baseUrimage}/$formattedUrl";
+      }
+      if (formattedUrl.startsWith('http://api.gymgeniusai.co.uk')) {
+        formattedUrl = formattedUrl.replaceFirst('http://', 'https://');
+      }
+
+      final controller = (formattedUrl.startsWith('http://') || formattedUrl.startsWith('https://'))
+          ? VideoPlayerController.networkUrl(Uri.parse(formattedUrl))
+          : VideoPlayerController.asset(formattedUrl);
 
       videoController.value = controller;
       await controller.initialize();
