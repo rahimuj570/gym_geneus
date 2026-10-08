@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>242619003718-3i5lsp63d1uppp92hevoag5h70q3l1rm.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyA-yij-Q7OIhoYY3aGTbv1O22TVxJfLUys</string>
 	<key>GCM_SENDER_ID</key>
@@ -9,7 +11,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.gymgeniusai</string>
+	<string>com.kenzeno.gymgeniusai</string>
 	<key>PROJECT_ID</key>
 	<string>kenzeno-142b5</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +27,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:242619003718:ios:28ed1311bbf3a7602b6b47</string>
+	<string>1:242619003718:ios:eece984a1775d1f82b6b47</string>
 </dict>
 </plist>
