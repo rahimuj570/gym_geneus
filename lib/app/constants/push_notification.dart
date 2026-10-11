@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_storage/get_storage.dart';
@@ -136,17 +138,13 @@ Future<void> initFCM() async {
 
   _isFcmInitialized = true;
 
-  // Get FCM token and store it
-  try {
-    final token = await messaging.getToken();
-    if (token != null) {
-      final box = GetStorage();
-      box.write('FCMToken', token);
-      print("📲 FCM Token: $token");
-      await syncFCMToken();
-    }
-  } catch (e) {
-    print("⚠️ Error retrieving initial FCM token: $e");
+  // Get FCM token safely and store it
+  final token = await _getFcmTokenSafely(messaging);
+  if (token != null && token.isNotEmpty) {
+    final box = GetStorage();
+    box.write('FCMToken', token);
+    print("📲 FCM Token: $token");
+    await syncFCMToken();
   }
 
   // Foreground messages listener
@@ -169,13 +167,39 @@ Future<void> initFCM() async {
   });
 }
 
+// ------------------------ Safe FCM Token Retrieval ------------------------
+Future<String?> _getFcmTokenSafely(FirebaseMessaging messaging) async {
+  try {
+    if (Platform.isIOS) {
+      String? apnsToken = await messaging.getAPNSToken();
+      int retryCount = 0;
+      while (apnsToken == null && retryCount < 5) {
+        await Future.delayed(const Duration(seconds: 1));
+        apnsToken = await messaging.getAPNSToken();
+        retryCount++;
+      }
+
+      if (apnsToken == null) {
+        print("ℹ️ APNs token not available yet (expected on iOS Simulator or pending APNs registration).");
+        return null;
+      }
+      print("🍏 APNs Token received: $apnsToken");
+    }
+
+    return await messaging.getToken();
+  } catch (e) {
+    print("⚠️ Error retrieving FCM token: $e");
+    return null;
+  }
+}
+
 // ------------------------ Sync Token to Backend ------------------------
 Future<void> syncFCMToken() async {
   try {
     final box = GetStorage();
     String? token = box.read<String>('FCMToken');
     if (token == null || token.isEmpty) {
-      token = await FirebaseMessaging.instance.getToken();
+      token = await _getFcmTokenSafely(FirebaseMessaging.instance);
       if (token != null && token.isNotEmpty) {
         box.write('FCMToken', token);
       }
