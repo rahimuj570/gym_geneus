@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_debug_logger/flutter_debug_logger.dart';
 
@@ -8,9 +9,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:kenzeno/app/constants/push_notification.dart';
+import 'package:kenzeno/app/constants/tester_track_config.dart';
 import 'package:kenzeno/app/modules/auth/views/otp.dart';
 import 'package:kenzeno/app/modules/home/views/navbar.dart';
 import 'package:kenzeno/app/modules/setup/views/setup.dart';
+import 'package:tester_track/tester_track.dart';
 
 import '../../../constants/appconstants.dart';
 
@@ -45,7 +48,8 @@ class Authcontroller extends GetxController {
 
   // Legacy aliases
   TextEditingController get namecontroller => signupNameController;
-  TextEditingController get confirmpasswordController => signupConfirmPasswordController;
+  TextEditingController get confirmpasswordController =>
+      signupConfirmPasswordController;
 
   final TextEditingController countryController = TextEditingController();
   final isLoading = false.obs;
@@ -304,6 +308,15 @@ class Authcontroller extends GetxController {
       final result = await _authProvider.login(user);
 
       if (result == "success") {
+        ///
+        ////////////////TESTER TRACK START
+
+        await TesterTrack.initialize(
+          firebaseOptions: testerTrackOptions,
+          testerId: user.email,
+        );
+        ////////////////TESTER TRACK END
+        ///
         if (ischecked.value) {
           storage.write('email', user.email);
           storage.write('password', user.password);
@@ -386,7 +399,9 @@ class Authcontroller extends GetxController {
       return;
     }
     if (trimmedOtp.length != 4) {
-      CustomSnackbar.showError('Please enter the complete 4-digit verification code');
+      CustomSnackbar.showError(
+        'Please enter the complete 4-digit verification code',
+      );
       return;
     }
 
@@ -395,7 +410,9 @@ class Authcontroller extends GetxController {
 
       if (frompage.value == "signup") {
         final result = await _authProvider.activateAccount(
-          registeredEmail.isNotEmpty ? registeredEmail : signupEmailController.text.trim(),
+          registeredEmail.isNotEmpty
+              ? registeredEmail
+              : signupEmailController.text.trim(),
           trimmedOtp,
         );
         if (result == "success") {
@@ -424,7 +441,9 @@ class Authcontroller extends GetxController {
     final trimmedOtp = otp.trim();
     final trimmedEmail = email.trim().isNotEmpty
         ? email.trim()
-        : (registeredEmail.isNotEmpty ? registeredEmail : forgotEmailController.text.trim());
+        : (registeredEmail.isNotEmpty
+              ? registeredEmail
+              : forgotEmailController.text.trim());
 
     if (trimmedEmail.isEmpty) {
       CustomSnackbar.showError('Email is required');
@@ -435,7 +454,9 @@ class Authcontroller extends GetxController {
       return false;
     }
     if (trimmedOtp.length != 4) {
-      CustomSnackbar.showError('Please enter the complete 4-digit verification code');
+      CustomSnackbar.showError(
+        'Please enter the complete 4-digit verification code',
+      );
       return false;
     }
 
@@ -463,12 +484,13 @@ class Authcontroller extends GetxController {
   }
 
   Future<void> resendOtp({String? email}) async {
-    final targetEmail = email ??
+    final targetEmail =
+        email ??
         (registeredEmail.isNotEmpty
             ? registeredEmail
             : (signupEmailController.text.trim().isNotEmpty
-                ? signupEmailController.text.trim()
-                : forgotEmailController.text.trim()));
+                  ? signupEmailController.text.trim()
+                  : forgotEmailController.text.trim()));
 
     if (targetEmail.isEmpty) {
       CustomSnackbar.showError('Email is required to resend OTP');
@@ -583,9 +605,7 @@ class Authcontroller extends GetxController {
 
   Future<void> logout() async {
     try {
-      await unregisterFCM().timeout(
-        const Duration(seconds: 3),
-      );
+      await unregisterFCM().timeout(const Duration(seconds: 3));
     } catch (e) {
       print("⚠️ FCM unregister failed: $e");
     }
@@ -619,4 +639,3 @@ class Authcontroller extends GetxController {
     super.onClose();
   }
 }
-

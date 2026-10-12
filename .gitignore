@@ -53,3 +53,4 @@ app.*.map.json
 android/*-*.json
 *.json.secret
 
+tester_track_config.dart
