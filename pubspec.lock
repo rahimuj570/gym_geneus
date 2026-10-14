@@ -1081,10 +1081,10 @@ packages:
     dependency: "direct main"
     description:
       name: tester_track
-      sha256: ac3b5f062a0be6cb77a56b648a3c730aad6f637ec450b3d3b1f3dc51191e2af0
+      sha256: ebfa36675c560cd8b529829162e95f22928997faa3209740ec2c0b80381e4b95
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.2"
+    version: "0.0.4"
   timezone:
     dependency: transitive
     description:
