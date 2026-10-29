@@ -19,8 +19,8 @@ class Subscription extends StatelessWidget {
 
   final SubscriptionController controller =
       Get.isRegistered<SubscriptionController>()
-          ? Get.find<SubscriptionController>()
-          : Get.put(SubscriptionController());
+      ? Get.find<SubscriptionController>()
+      : Get.put(SubscriptionController());
 
   final List<Map<String, String>> featureCards = [
     {
@@ -311,17 +311,17 @@ class Subscription extends StatelessWidget {
                           itemCount: featureCards.length,
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount:
-                                MediaQuery.of(context).size.width >= 600
+                                crossAxisCount:
+                                    MediaQuery.of(context).size.width >= 600
                                     ? 3
                                     : 2,
-                            mainAxisSpacing: 16.h,
-                            crossAxisSpacing: 12.w,
-                            childAspectRatio:
-                                MediaQuery.of(context).size.width >= 600
+                                mainAxisSpacing: 16.h,
+                                crossAxisSpacing: 12.w,
+                                childAspectRatio:
+                                    MediaQuery.of(context).size.width >= 600
                                     ? 1.1
                                     : 0.95,
-                          ),
+                              ),
                           itemBuilder: (context, index) {
                             final card = featureCards[index];
                             return InfoCard(
